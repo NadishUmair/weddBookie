@@ -17,6 +17,9 @@ const UserSchema = new Schema({
         enum: ['vendor', 'host', 'admin'],
         required: true
     },
+    otp:{
+     type:Number
+    },
     profile: {
         type: String,
     },

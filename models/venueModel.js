@@ -7,8 +7,15 @@ const VenueSchema= new Schema({
         ref: 'Vendor',
         required: true
       },
-      image:{
-         type:String,
+      title:{
+       type:String,
+       required:true
+      },
+      booking_price:{
+
+      },
+      images:{
+         type:[String],
          required:true
       },
      street: {

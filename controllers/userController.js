@@ -3,10 +3,11 @@ const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 const HostModel = require('../models/hostModel');
 const VendorModel = require('../models/vendorModel');
+const SendEmail = require('../utils/nodemailer');
 
 
 // Signup Controller
-const signup = async (req, res) => {
+exports.signup = async (req, res) => {
     const { email, password, role, profileData } = req.body;
     // profileData will include specific fields like estimated_guests for hosts or category for vendors
 
@@ -72,7 +73,7 @@ const signup = async (req, res) => {
 };
 
 // Login Controller
-const login = async (req, res) => {
+exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
       const user = await UserModel.findOne({ email });
@@ -91,11 +92,11 @@ const login = async (req, res) => {
       }
 
       // Generate a JWT token
-      const token = jwt.sign({ userId: user._id, role: user.role }, process.env.SECRETE_KEY, { expiresIn: '1h' });
+      const accessToken = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       // Return the user data along with profile data and token
       res.status(200).json({
-          token,
+          accessToken,
           user: {
               email: user.email,
               role: user.role,
@@ -109,18 +110,28 @@ const login = async (req, res) => {
   }
 };
 
-// Reset Password Controller
-const resetPassword = async (req, res) => {
-    const { email, newPassword } = req.body;
+// Forget Password Controller
+const generateOtp = () => {
+    return Math.floor(100000 + Math.random() * 900000);
+}
+exports.forgetPassword = async (req, res) => {
+    const { email } = req.body;
     try {
         const user = await UserModel.findOne({ email });
         if (!user) return res.status(404).json({ message: 'User not found' });
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
+        const otp=generateOtp()
+        user.otp=otp;
         await user.save();
-
-        res.status(200).json({ message: 'Password updated successfully' });
+        const forgetPasstoken=jwt.sign({id:user._id},process.env.JWT_SECRET,{expiresIn: '1h'});
+        const request=  
+            {
+                subject: "OTP",
+                message: `Please enter this OTP in the application to proceed. Remember, this OTP is valid for a limited time only. 
+                        If you did not request this OTP, please disregard this email or contact our support team for assistance.`,
+              }
+        
+        await SendEmail(res,user.email,request,user.first_name,otp);
+        res.status(200).json({ message: 'otp sent to your email', forgetPasstoken ,otp });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error resetting password' });
@@ -128,5 +139,62 @@ const resetPassword = async (req, res) => {
 };
 
 
+//Verify Otp
 
-module.exports = { signup, login, resetPassword };
+exports.verifyOtp=async(req,res)=>{
+    try {
+        // console.log("req",req);
+        const userId=req.userId;
+        console.log("id",userId);
+        const {otp}=req.body;
+        console.log("otp",otp);
+        const user=await UserModel.findById(userId);
+        if(!user){
+            return res.status(404).json({message:"user not exist"})
+        }
+        console.log("user",user.otp);
+        if(user.otp !== otp){
+            return res.status(404).json({message:"otp not matched"})
+        }
+        user.otp=null;
+        await user.save();
+        res.status(200).json({message:"otp matched"})
+    } catch (error) {
+        console.log("error",error);
+        return res.status(500).json({message:"try again.Later"})
+    }
+}
+
+
+// !__________________ Reset Passsword _____________________!
+exports.resetPassword=async(req,res)=>{
+    try {
+         const userId=req.userId;
+         const {password}=req.body;
+         const user=await UserModel.findById(userId);
+          if(!user){
+            return res.status(404).json({message:"user not exist"});
+          }
+          if (password.length < 8 || !/[A-Z]/.test(password)) {
+            return res.status(400).json({
+              error:
+                "Password should be at least 8 characters long and contain at least one uppercase letter",
+            });
+          }
+          const hashPassword=await bcrypt.hash(password,10);
+          user.password=hashPassword;
+          await user.save();
+          res.status(200).json({message:"password changed successfully"});  
+        } catch (error) {
+         return res.status(500).json({message:"try again.Later"})
+       }
+}
+
+
+
+
+
+
+
+
+
