@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const HostSchema = new Schema({
-  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   first_name: {
     type: String,
     required: true,

@@ -1,10 +1,11 @@
 const express=require("express");
-const { HostSignup} = require("../controllers/hostController");
+const { authenticateToken } = require("../middleware/userAuth");
+const { HostProfile } = require("../controllers/hostController");
+
 const router=express.Router();
 
 
-router.route("/host-signup").post(HostSignup);
-
+router.route("/profile/:id").get(authenticateToken,HostProfile)
 
 
 module.exports=router;

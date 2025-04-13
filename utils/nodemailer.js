@@ -21,113 +21,114 @@ const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') =
       from: process.env.SMTP_EMAIL,
       to: EmailAddress,
       subject: request.subject,
-      html: `
-        <html>
-        <head>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              color: #333;
-              margin: 0;
-              padding: 0;
-            }
-            table {
-              width: 100%;
-              max-width: 600px;
-              margin: 0 auto;
-              border-spacing: 0;
-            }
-              .main {
-               background-color: #f4f4f4;
-               border-radius: 10px;
-              }
-            .container {
-              padding: 40px;
-              
-            }
-            .header {
-              font-size: 24px;
-              font-weight: bold;
-              text-align: center;
-              padding-bottom: 20px;
-              color: #333;
-            }
-           .content {
-          font-size: 16px;
-          line-height: 1.6; /* Increased line-height for better readability */
-          color: #555;
-          padding-bottom: 30px;
-          text-align: justify; /* This property balances the text */
-          max-width: 520px; /* Limit the width of the content */
-          margin: 0 auto; /* Center the content */
-        }
-            .footer {
-              font-size: 12px;
-              text-align: center;
-              color: #888;
-            }
-                .otp{
-      color: red;
-      text-align: center;
+      html:`
+     <html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
     }
-          
-            .cta {
-              background-color: #3498db;
-              color: #fff;
-              padding: 10px 20px;
-              text-align: center;
-              display: block;
-              text-decoration: none;
-              border-radius: 5px;
-              margin-top: 20px;
-            }
-            .logo {
-              text-align: center;
-              margin-bottom: 20px;
-              background-color: black;
-              padding: 10px;
-              border-radius: 10px;
-            }
-            .logo img {
-              max-width: 150px;
-              height: auto;
-            }
-              .weblink {
-                color: red;
-                text-decoration: underline;
-              }
-          </style>
-        </head>
-        <body>
-          <table>
-            <tr>
-              <td class="main">
-                <div class="logo">
-                  <img src="" alt="weddBookie Logo"/>
-                </div>
-                <div class="container">
-                <div class="header">
-                  Dear, ${userName}
-                </div>
-                <div class="content">
-                  <p>${request?.message}</p>
-                  <h1 class="otp">${otp}</h1>
-                  <p>We hope you enjoy using our service!</p>
-                </div>
-                <div class="footer">
-                  
-                  <p>OBO MAX (Pvt) Ltd</p>
-                
-                  <p>This message was emailed to ${userName} by weddBookie because you created an weddBookie account.</p>
-                   <a href="https://www.weddBookie.com/" class="weblink">weddBookie.com</a>
-                  </div>
-                 </div>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
-      `,
+    table {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      border-spacing: 0;
+      background-color: #ffffff;
+      border: 1px solid #eaeaea;
+      border-radius: 10px;
+    }
+    .container {
+      padding: 40px;
+    }
+    .header {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      color: #007c26;
+      padding-bottom: 20px;
+    }
+    .content {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333333;
+      text-align: justify;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .otp {
+      color: #007c26;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .footer {
+      font-size: 12px;
+      text-align: center;
+      color: #666666;
+      margin-top: 40px;
+    }
+    .cta {
+      background-color: #007c26;
+      color: #fff;
+      padding: 12px 24px;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      margin: 30px auto 0;
+    }
+    .logo {
+      text-align: center;
+      padding: 20px;
+    }
+    .logo img {
+      max-width: 150px;
+      height: auto;
+    }
+    .weblink {
+      color: #014f1b;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <td>
+        <div class="logo">
+          <img src="/uploads/logo.png" alt="WedBookie Logo" />
+        </div>
+        <div class="container">
+          <div class="header">
+            Welcome, ${userName}!
+          </div>
+          <div class="content">
+            <p>${request?.message}</p>
+            ${otp ? `<div class="otp">${otp}</div>` : ""}
+            <p>We’re happy to have you with us. Feel free to explore and enjoy the features we’ve built just for you.</p>
+            <div style="text-align: center;">
+              <a href="https://www.WedBookie.com/" class="cta">Visit WedBookie</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>WED BOOKIE (Pvt) Ltd</p>
+            <p>This message was emailed to ${userName} because you created a WedBookie account.</p>
+            <a href="https://www.WedBookie.com/" class="weblink">WedBookie.com</a>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+
+    
     };
 
     await Transporter.sendMail(MailOptions);

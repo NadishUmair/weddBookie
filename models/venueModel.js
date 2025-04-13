@@ -11,9 +11,9 @@ const VenueSchema= new Schema({
        type:String,
        required:true
       },
-      booking_price:{
-
-      },
+     timings:{
+       type:Object
+     },
       images:{
          type:[String],
          required:true
