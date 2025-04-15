@@ -111,9 +111,7 @@ const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') =
             <p>${request?.message}</p>
             ${otp ? `<div class="otp">${otp}</div>` : ""}
             <p>We’re happy to have you with us. Feel free to explore and enjoy the features we’ve built just for you.</p>
-            <div style="text-align: center;">
-              <a href="https://www.WedBookie.com/" class="cta">Visit WedBookie</a>
-            </div>
+         
           </div>
           <div class="footer">
             <p>WED BOOKIE (Pvt) Ltd</p>

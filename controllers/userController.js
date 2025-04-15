@@ -4,10 +4,15 @@ const UserModel = require("../models/userModel");
 const HostModel = require("../models/hostModel");
 const VendorModel = require("../models/vendorModel");
 const SendEmail = require("../utils/nodemailer");
+const { CreateHostProfile, CreateVendorProfile } = require("../utils/profileUtils");
 
+
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000);
+};
 // Signup Controller
 exports.signup = async (req, res) => {
-  const { email, password, role, profileData } = req.body;
+  const { email, password, role,phone_no, profileData } = req.body;
   // profileData will include specific fields like estimated_guests for hosts or category for vendors
 
   try {
@@ -24,51 +29,41 @@ exports.signup = async (req, res) => {
     const emailToLowerCase=email.toLowerCase();
     const existingUser = await UserModel.findOne({ email: emailToLowerCase });
     if (existingUser)
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "email already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new UserModel({
       email,
       password: hashedPassword,
+      phone_no,
       role,
       isVerified: false,
     });
 
     // Create corresponding profile (Vendor/Host) based on role and profileModel
-    let newProfile;
     if (role === "host") {
-      newProfile = new HostModel({
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        phone_no: profileData.phone_no,
-        country: profileData.country,
-        event_type: profileData.event_type,
-        estimated_guests: profileData.estimated_guests,
-        event_budget: profileData.event_budget,
-      });
-   
+      newProfile = CreateHostProfile(profileData, phone_no);
+    } else if (role === "vendor") {
+      newProfile = CreateVendorProfile(profileData, phone_no);
+      if (newProfile.error) {
+        return res.status(400).json({ message: newProfile.error });
+      }
     }
-
-    if (role === "vendor") {
-      newProfile = new VendorModel({
-        first_name: profileData.first_name, // Vendor-specific field
-        last_name: profileData.last_name, // Vendor-specific field
-        phone_no: profileData.phone_no, // Vendor-specific field
-        country: profileData.country, // Vendor-specific field
-        category: profileData.category, // Vendor-specific field
-        business_registration: profileData.business_registration, // Vendor-specific field
-      });
-     
-    }
+    
+    
       const savedProfile=await newProfile.save();
       newUser.profile=savedProfile._id;
       await newUser.save();
-
-    const request = {
+     const otp=generateOtp();
+     const request = {
       subject: "Welcome to Wed Bookie!",
       message: `Hi there!
     
     Welcome to Wed Bookie! 🎉 We're excited to have you on board.
+    
+    To get started, we've sent you a One-Time Password (OTP) to verify your account.
+    
+    Please enter this OTP in the app to complete your sign-up process.
     
     You can now log in and start exploring all the awesome features we offer. If you ever have any questions or need help, our support team is just an email away.
     
@@ -77,14 +72,56 @@ exports.signup = async (req, res) => {
     Cheers,  
     The Wed Bookie Team`
     };
-    
-    await SendEmail(res,email,request, profileData.first_name)
+    await SendEmail(res,email,request, profileData.first_name,otp)
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error creating user" });
   }
 };
+
+//!__________________ Verify Signup ______________________________!
+exports.verifySignup=async(req,res)=>{
+  try {
+         const {email,otp}=req.body;
+         const emailToLowerCase=email.toLowerCase();
+         const user=await UserModel.findOne({email:emailToLowerCase});
+         if(!user){
+          return res.status(404).json({message:"user not exist"})
+         }
+         if(user.otp !== otp){
+          return res.status(401).json({message:"otp not matched"})
+         }
+         user.otp=null;
+            // Fetch user's profile based on their role
+    let profile = null;
+    if (user.role === "host") {
+      profile = await HostModel.findOne({ _id: user.profile }).exec();
+    } else if (user.role === "vendor") {
+      profile = await VendorModel.findOne({ _id: user.profile }).exec();
+    }
+        // Generate a JWT token
+    const accessToken = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+    res.status(200).json({
+      message:"loged in Successfully",
+      accessToken,
+      user: {
+        _id:user._id,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        profile,
+      },
+    });
+  } catch (error) {
+    return res.status(500).jon({message:"please try again.Later"})
+  }
+}
+
 
 // Login Controller
 exports.login = async (req, res) => {
@@ -102,20 +139,27 @@ exports.login = async (req, res) => {
     // Fetch user's profile based on their role
     let profile = null;
     if (user.role === "host") {
-      profile = await HostModel.findOne({ user: user._id }).exec();
+      profile = await HostModel.findOne({ _id: user.profile }).exec();
     } else if (user.role === "vendor") {
-      profile = await VendorModel.findOne({ user: user._id }).exec();
+      profile = await VendorModel.findOne({ _id: user.profile }).exec();
     }
 
+
+    console.log("user",user);
     // Generate a JWT token
     const accessToken = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
-
+   
+    await user.save();
+ 
+    
     // Return the user data along with profile data and token
+    SendEmail(res,user.email,request,profile.first_name)
     res.status(200).json({
+      message:"loged In Sucessfully",
       accessToken,
       user: {
         _id:user._id,
@@ -131,10 +175,13 @@ exports.login = async (req, res) => {
   }
 };
 
+
+
+
+
+
+
 // Forget Password Controller
-const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000);
-};
 exports.forgetPassword = async (req, res) => {
   const { email } = req.body;
   try {

@@ -11,12 +11,15 @@ const VenueSchema= new Schema({
        type:String,
        required:true
       },
-     timings:{
-       type:Object
-     },
+      timings: {
+        type: Map,
+        of: {
+          start: { type: String, required: true },
+          end: { type: String, required: true }    
+        }
+      },      
       images:{
-         type:[String],
-         required:true
+         type:[String]
       },
      street: {
         type: String,
@@ -34,7 +37,7 @@ const VenueSchema= new Schema({
         type: String,
       },
     services:{
-        type:[string]
+        type:[String]
     },
     capacity:{
         type: Number,
@@ -46,7 +49,12 @@ const VenueSchema= new Schema({
       bookings: [{
         type: Schema.Types.ObjectId,
         ref: 'Event'
-      }],   
+      }],
+      status:{
+         type:String,
+         enum: ['pending','rejected','active'],
+         default:"pending"
+      }
 },{timestamps:true})
 
 const VenueModel=mongooes.model("Venue",VenueSchema);

@@ -1,28 +1,31 @@
 
 const mongooes=new mongooes();
-const serviceSchema = new Schema({
-    name: {
-      type: String,
-      required: true
-    },
-    description: {
-      type: String
-    },
-    price:{
-      type: Number,
-      required: true
-    },
-    vendor: {
-      type: Schema.Types.ObjectId,
-      ref: 'Vendor',
-      required: true
-    },
-    available: {
-      type: Boolean,
-      default: true
-    }
-  }, { timestamps: true });
-  
-  const ServicesModel= mongoose.model('Service', serviceSchema);
+const ServiceSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  description: String,
+  price: {
+    type: Number,
+    required: true
+  },
+  vendor: {
+    type: Schema.Types.ObjectId,
+    ref: 'Vendor',
+    required: true
+  },
+  venue: {
+    type: Schema.Types.ObjectId,
+    ref: 'Venue',
+    default: null // Only set if service is tied to a venue
+  },
+  category: {
+    type: String, // e.g., 'Car Rental', 'Catering', 'Photography'
+    required: true
+  }
+}, { timestamps: true });
+
+  const ServicesModel= mongoose.model('Service', ServiceSchema);
   module.exports=ServicesModel;
   
