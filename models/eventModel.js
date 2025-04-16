@@ -1,17 +1,17 @@
 const eventSchema = new Schema({
     host: {
       type: Schema.Types.ObjectId,
-      ref: 'Host',
+      ref: 'host',
       required: true
     },
     venue: {
       type: Schema.Types.ObjectId,
-      ref: 'Venue',
+      ref: 'venue',
       required: true
     },
     services: [{
       type: Schema.Types.ObjectId,
-      ref: 'Service'
+      ref: 'service'
     }],
     eventDate: {
       type: Date,
@@ -22,11 +22,12 @@ const eventSchema = new Schema({
       required: true
     },
     status: {
-      type: String, // Pending, Confirmed, Cancelled
-      default: 'Pending'
+      type: String, 
+      enumm:['pending','confirmed','cancelled'],// Pending, Confirmed, Cancelled
+      default: 'pending'
     }
   }, { timestamps: true });
   
-  const EventsModel= mongoose.model('Event', eventSchema);
+  const EventsModel= mongoose.model('event', eventSchema);
   module,exports=EventsModel;
   

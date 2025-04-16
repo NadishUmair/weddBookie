@@ -25,8 +25,9 @@ const UserSchema = new Schema({
      type:Number
     },
     profile: {
-        type: String,
-    },
+        type: Schema.Types.ObjectId,
+        refPath: 'role',
+      },
     isVerified: {
         type: Boolean,
         default: false
@@ -34,5 +35,5 @@ const UserSchema = new Schema({
     lastLogin: Date,
 }, {timestamps: true});
 
-const UserModel = mongoose.model('User', UserSchema);
+const UserModel = mongoose.model('user', UserSchema);
 module.exports = UserModel;

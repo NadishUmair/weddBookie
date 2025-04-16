@@ -4,7 +4,7 @@ const {Schema}=mongooes;
 const VenueSchema= new Schema({
     vendor:{
         type: Schema.Types.ObjectId,
-        ref: 'Vendor',
+        ref: 'vendor',
         required: true
       },
       title:{
@@ -48,7 +48,7 @@ const VenueSchema= new Schema({
       }],
       bookings: [{
         type: Schema.Types.ObjectId,
-        ref: 'Event'
+        ref: 'event'
       }],
       status:{
          type:String,

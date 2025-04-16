@@ -32,13 +32,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: "email already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new UserModel({
-      email,
-      password: hashedPassword,
-      phone_no,
-      role,
-      isVerified: false,
-    });
+ 
 
     // Create corresponding profile (Vendor/Host) based on role and profileModel
     if (role === "host") {
@@ -49,12 +43,18 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ message: newProfile.error });
       }
     }
-    
-    
-      const savedProfile=await newProfile.save();
-      newUser.profile=savedProfile._id;
+    await newProfile.save();
+    const newUser = new UserModel({
+      email,
+      password: hashedPassword,
+      phone_no,
+      profile:newProfile._id,
+      role,
+      isVerified: false,
+    });
+      const otp=generateOtp();
+      newUser.otp=otp;
       await newUser.save();
-     const otp=generateOtp();
      const request = {
       subject: "Welcome to Wed Bookie!",
       message: `Hi there!
@@ -101,14 +101,16 @@ exports.verifySignup=async(req,res)=>{
       profile = await VendorModel.findOne({ _id: user.profile }).exec();
     }
         // Generate a JWT token
-    const accessToken = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
+    // const accessToken = jwt.sign(
+    //   { userId: user._id, role: user.role },
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: "30d" }
+    // );
+    user.isVerified=true;
+    await user.save();
     res.status(200).json({
-      message:"loged in Successfully",
-      accessToken,
+      message:"signup completed",
+      // accessToken,
       user: {
         _id:user._id,
         email: user.email,
@@ -125,52 +127,46 @@ exports.verifySignup=async(req,res)=>{
 
 // Login Controller
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const emailToLowerCase=email.toLowerCase();
-    const user = await UserModel.findOne({ email:emailToLowerCase });
-    if (!user) return res.status(404).json({ message: "User not exist" });
+  const { auth, password } = req.body;
 
-    // Compare password
+  try {
+    let query;
+
+    // Check if input is an email or a phone number
+    if (!isNaN(auth)) {
+      // It's a phone number (convert to number)
+      query = { phone_no: Number(auth) };
+    } else if (auth.includes('@')) {
+      // It's an email
+      query = { email: auth.toLowerCase() };
+    } else {
+      return res.status(400).json({ message: "Invalid email or phone number format" });
+    }
+
+    const user = await UserModel.findOne(query).populate('profile');
+    if (!user) return res.status(404).json({ message: "User does not exist" });
+
+    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid)
       return res.status(400).json({ message: "Invalid password" });
 
-    // Fetch user's profile based on their role
-    let profile = null;
-    if (user.role === "host") {
-      profile = await HostModel.findOne({ _id: user.profile }).exec();
-    } else if (user.role === "vendor") {
-      profile = await VendorModel.findOne({ _id: user.profile }).exec();
-    }
-
-
-    console.log("user",user);
-    // Generate a JWT token
+    // Fetch user profile
+ 
+    // Generate JWT token
     const accessToken = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
-   
-    await user.save();
- 
-    
-    // Return the user data along with profile data and token
-    SendEmail(res,user.email,request,profile.first_name)
+
     res.status(200).json({
-      message:"loged In Sucessfully",
+      message: "Logged in successfully",
       accessToken,
-      user: {
-        _id:user._id,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
-        profile,
-      },
+      user
     });
   } catch (err) {
-    console.error(err);
+    console.error("Login Error:", err);
     res.status(500).json({ message: "Error logging in" });
   }
 };
@@ -178,15 +174,25 @@ exports.login = async (req, res) => {
 
 
 
-
-
-
 // Forget Password Controller
 exports.forgetPassword = async (req, res) => {
-  const { email } = req.body;
+  const { auth } = req.body;
   try {
-    const user = await UserModel.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    let query;
+
+    // Check if input is an email or a phone number
+    if (!isNaN(auth)) {
+      // It's a phone number (convert to number)
+      query = { phone_no: Number(auth) };
+    } else if (auth.includes('@')) {
+      // It's an email
+      query = { email: auth.toLowerCase() };
+    } else {
+      return res.status(400).json({ message: "Invalid email or phone number format" });
+    }
+
+    const user = await UserModel.findOne(query).populate('profile');
+    if (!user) return res.status(404).json({ message: "User does not exist" });
     const otp = generateOtp();
     user.otp = otp;
     await user.save();
@@ -199,7 +205,7 @@ exports.forgetPassword = async (req, res) => {
                         If you did not request this OTP, please disregard this email or contact our support team for assistance.`,
     };
 
-    await SendEmail(res, user.email, request, user.first_name, otp);
+    await SendEmail(res, user.email, request,user.profile.first_name, otp);
     res
       .status(200)
       .json({ message: "otp sent to your email", forgetPasstoken, otp });
@@ -262,7 +268,7 @@ exports.updatePassword=async(req,res)=>{
     try { 
            const id=req.params.id;
            const {currentPassword,newPassword}=req.body;
-           const user=await UserModel.findById(id);
+           const user=await UserModel.findById(id).populate('profile');
            if(!user){
             return res.status(404).json({message:"user not exsit"});
            }
@@ -292,7 +298,7 @@ exports.updatePassword=async(req,res)=>{
           Cheers,  
           The Wed Bookie Team`
           };
-          await SendEmail(res,user.email,request,user.first_name);
+          await SendEmail(res,user.email,request,user.profile.first_name);
           res.status(200).json({message:"password updated Successfully"});
     } catch (error) {
       res.status(200).json({message:"password updated Successfully"});   

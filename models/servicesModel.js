@@ -26,6 +26,6 @@ const ServiceSchema = new Schema({
   }
 }, { timestamps: true });
 
-  const ServicesModel= mongoose.model('Service', ServiceSchema);
+  const ServicesModel= mongoose.model('service', ServiceSchema);
   module.exports=ServicesModel;
   

@@ -21,5 +21,5 @@ const HostSchema = new Schema({
   interested_vendors: [{ type: Schema.Types.ObjectId, ref: "Vendor" }],
 });
 
-const HostModel = mongoose.model("Host", HostSchema);
+const HostModel = mongoose.model("host", HostSchema);
 module.exports = HostModel;

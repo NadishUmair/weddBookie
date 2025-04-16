@@ -45,7 +45,7 @@ const CreateHostProfile = (profileData, phone_no) => {
   
     if (
       !first_name || !category || !country || !business_license_number || !business_registration ||
-      !tax_id_number || !street || !city || !state || !postal_code
+      !tax_id_number || !street || !city || !state || !postal_code || !website
     ) {
       return { error: "All fields are required" };
     }

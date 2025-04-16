@@ -28,19 +28,19 @@ const VendorSchema = new Schema(
     reviews: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Review",
+        ref: "review",
       },
     ],
     services: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Service",
+        ref: "service",
       },
     ],
     venues: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Venue",
+        ref: "venue",
       },
     ],
     portfolio_images: [String],
@@ -54,13 +54,13 @@ const VendorSchema = new Schema(
     },
     business_type: {
       type: String,
-      enum: ["Sole Proprietorship", "Partnership", "LLC", "Corporation"],
+      enum: ["sole proprietorship", "partnership", "llc", "corporation"],
     },
     tax_id_number: String,
-    website: [{
+    website: {
       type:String,
       required:true
-    }],
+    },
     social_links: [String],
     street: {
       type: String,
@@ -96,5 +96,5 @@ const VendorSchema = new Schema(
   { timestamps: true }
 );
 
-const VendorModel = mongoose.model("Vendor", VendorSchema);
+const VendorModel = mongoose.model("vendor", VendorSchema);
 module.exports = VendorModel;
