@@ -29,8 +29,11 @@ exports.signup = async (req, res) => {
     const emailToLowerCase=email.toLowerCase();
     const existingUser = await UserModel.findOne({ email: emailToLowerCase });
     if (existingUser)
-      return res.status(400).json({ message: "email already exists" });
-
+      return res.status(409).json({ message: "email already exists please use another" });
+    const existPhoneNo=await UserModel.findOne({phone_no});
+    if(existPhoneNo){
+    return res.status(409).json({message:"phone no already exist pleasse use another"})
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
  
 
@@ -124,11 +127,9 @@ exports.verifySignup=async(req,res)=>{
   }
 }
 
-
 // Login Controller
 exports.login = async (req, res) => {
   const { auth, password } = req.body;
-
   try {
     let query;
 
@@ -170,9 +171,6 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Error logging in" });
   }
 };
-
-
-
 
 // Forget Password Controller
 exports.forgetPassword = async (req, res) => {
@@ -255,7 +253,22 @@ exports.resetPassword = async (req, res) => {
     }
     const hashPassword = await bcrypt.hash(password, 10);
     user.password = hashPassword;
+    user.otp=null;
     await user.save();
+    const request = {
+      subject: "Your Password Has Been Updated",
+      message: `Hi there,
+    
+    We wanted to let you know that your password was successfully updated. If you made this change, no further action is needed.
+    
+    If you didn’t update your password, please contact our support team immediately so we can secure your account.
+    
+    Stay safe!
+    
+    Cheers,  
+    The Wed Bookie Team`
+    };
+    await SendEmail(res,user.email,request,user.profile.first_name);
     res.status(200).json({ message: "password changed successfully" });
   } catch (error) {
     return res.status(500).json({ message: "try again.Later" });
@@ -304,4 +317,6 @@ exports.updatePassword=async(req,res)=>{
       res.status(200).json({message:"password updated Successfully"});   
     }
 }
+
+
 

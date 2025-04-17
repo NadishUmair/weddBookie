@@ -62,10 +62,6 @@ const VendorSchema = new Schema(
       required:true
     },
     social_links: [String],
-    street: {
-      type: String,
-      required: true,
-    },
     city: {
       type: String,
       required: true,
@@ -83,14 +79,10 @@ const VendorSchema = new Schema(
       required: true,
     },
     years_of_experience: Number,
-    isVerified:{
-      type: Boolean,
-      default: false,
-    },
-    verfication: {
+    verification: {
       type: String,
-      enum: ["underreview", "verified", "rejected"],
-      default:"underreview"
+      enum: ["under_review", "rejected","verified"],
+      default:"under_review"
     },
   },
   { timestamps: true }

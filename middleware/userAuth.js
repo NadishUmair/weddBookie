@@ -23,7 +23,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.role = role;
-    req.user = decoded; // optional, gives access to entire payload
+    // req.user = decoded; // optional, gives access to entire payload
     next();
 
   } catch (error) {

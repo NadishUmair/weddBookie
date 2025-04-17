@@ -13,11 +13,30 @@ const VenueSchema= new Schema({
       },
       timings: {
         type: Map,
-        of: {
-          start: { type: String, required: true },
-          end: { type: String, required: true }    
+        of: new Schema({
+          morning: {
+            start: { type: String, required: false },
+            end: { type: String, required: false }
+          },
+          afternoon: {
+            start: { type: String, required: false },
+            end: { type: String, required: false }
+          },
+          evening: {
+            start: { type: String, required: false },
+            end: { type: String, required: false }
+          }
+        }, { _id: false })
+      },   
+      extra_services: [
+        {
+          name: { type: String, required: true },
+          description: { type: String },
+          price: { type: Number, required: true },
+          is_optional: { type: Boolean, default: true }
         }
-      },      
+      ],
+           
       images:{
          type:[String]
       },
@@ -48,7 +67,7 @@ const VenueSchema= new Schema({
       }],
       bookings: [{
         type: Schema.Types.ObjectId,
-        ref: 'event'
+        ref: 'booking'
       }],
       status:{
          type:String,
@@ -57,5 +76,5 @@ const VenueSchema= new Schema({
       }
 },{timestamps:true})
 
-const VenueModel=mongooes.model("Venue",VenueSchema);
-module.exports=VenueModel
+const VenueModel=mongooes.model("venue",VenueSchema);
+module.exports=VenueModel;
