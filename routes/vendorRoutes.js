@@ -1,7 +1,7 @@
 
 const express=require('express');
 const { authenticateToken } = require('../middleware/userAuth');
-const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue } = require('../controllers/vendorController');
+const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue, DeleteVenueService } = require('../controllers/vendorController');
 
 
 const router=express.Router();

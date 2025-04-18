@@ -17,6 +17,11 @@ const VendorSchema = new Schema(
       type: String,
       required: true,
     },
+    memeber_type:{
+      type:String,
+      enum:["general","premium"],
+      default:"general"
+    },
     business_registration:{ 
       type:String,
       required:true
@@ -54,7 +59,7 @@ const VendorSchema = new Schema(
     },
     business_type: {
       type: String,
-      enum: ["sole proprietorship", "partnership", "llc", "corporation"],
+      enum: ["partnership", "llc", "corporation"],
     },
     tax_id_number: String,
     website: {

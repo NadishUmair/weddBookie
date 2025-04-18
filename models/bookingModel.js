@@ -30,6 +30,12 @@ const BookingSchema = new Schema(
       type: Number,
       required: true,
     },
+    extra_services: [
+      {
+        name: { type: String },
+        price: { type: Number }
+      }
+    ],    
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],

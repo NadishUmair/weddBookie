@@ -35,8 +35,7 @@ const VenueSchema= new Schema({
           price: { type: Number, required: true },
           is_optional: { type: Boolean, default: true }
         }
-      ],
-           
+      ],      
       images:{
          type:[String]
       },
@@ -55,9 +54,6 @@ const VenueSchema= new Schema({
       postal_code: {
         type: String,
       },
-    services:{
-        type:[String]
-    },
     capacity:{
         type: Number,
         required: true

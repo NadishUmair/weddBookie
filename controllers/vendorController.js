@@ -36,7 +36,7 @@ exports.CreateVenue=async(req,res)=>{
       return res.status(401).json({message:"you are not authorized to create venue"});
      }
     const profileId=req.params.id;
-    const {title,street,city,state,country,postal_code,services,capacity,timings}=req.body;
+    const {title,street,city,state,country,postal_code,services,capacity,timings,extra_services}=req.body;
     const profile=await VendorModel.findById(profileId);
     if(!profile){
       return res.status(404).json({message:"vendor profile not exist"})
@@ -63,7 +63,8 @@ exports.CreateVenue=async(req,res)=>{
         postal_code,
         services,
         capacity,
-        timings
+        timings,
+        extra_services
      });
      await newVenue.save();
      console.log("venue",newVenue._id);
@@ -77,6 +78,32 @@ exports.CreateVenue=async(req,res)=>{
     return res.status(500).json({message:"please try again.Later"})
   }
 }
+
+// //!_____________________  Delete a Service from Venue__________________!
+// exports.DeleteVenueService=async(req,res)=>{
+//   try {
+//       const vendorId=req.params.id;
+//       const {venueId,serviceId}=req.body;
+
+//       const updateResult=await VenueModel.findOne({
+//         vendor:vendorId,
+//         _id:venueId, },
+//       {
+//         $pull:{
+//           extra_services:{_id:serviceId}
+//         }
+//       })
+//        if (updateResult.modifiedCount === 0) {
+//       return res.status(404).json({ message: "Service not found or not authorized to delete." });
+//     }
+      
+//     return res.status(200).json({ message: "Service deleted successfully." });
+
+//   } catch (error) {
+//     console.error("Error deleting extra service:", error);
+//     return res.status(500).json({ message: "Internal server error." });
+//   }
+// }
 
 // !__________________ Update Venue _______________________!
 exports.UpdateVenue = async (req, res) => {
