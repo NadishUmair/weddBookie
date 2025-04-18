@@ -30,12 +30,6 @@ const BookingSchema = new Schema(
       type: Number,
       required: true,
     },
-    message: {
-      type: String,
-    },
-    response_message: {
-      type: String,
-    },
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],

@@ -53,8 +53,6 @@ exports.CreateVenue=async(req,res)=>{
     if (timingError) {
       return res.status(400).json({ message: timingError });
     }
-    
-
      const newVenue=new VenueModel({
         vendor:profileId,
         title,
@@ -133,7 +131,7 @@ exports.DeleteVenue=async(req,res)=>{
           { new: true }
         );
          if(!vendor){
-          return res.status(409).json({message:"venue not belong to you"});
+          return res.status(409).json({message:"vendor not exist "});
          }
          const venue=await VenueModel.findByIdAndDelete(venueId);
          if(!venue){

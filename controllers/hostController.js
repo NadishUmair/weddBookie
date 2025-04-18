@@ -1,6 +1,8 @@
 
 
 
+const moment = require("moment");
+const BookingModel = require("../models/bookingModel");
 const HostModel = require("../models/hostModel");
 const UserModel = require("../models/userModel");
 const VenueModel = require("../models/venueModel");
@@ -33,16 +35,13 @@ exports.HostProfile=async(req,res)=>{
 //!_____________________ Book Venue __________________________________!
 exports.CreateBooking = async (req, res) => {
   try {
-    const {hostId} = req.body;
-    const role = req.user.role;
-    const venueId = req.params.venueId;
+    const role = req.role;
+    const hostId = req.params.id;
 
     if (role !== "host") {
       return res.status(403).json({ message: "Only hosts can create bookings." });
     }
-
-    const { event_date, time_slot, guests, message } = req.body;
-
+    const {venueId, event_date, time_slot, guests} = req.body;
     // Validate input
     if (!event_date || !time_slot) {
       return res.status(400).json({ message: "event_date and time_slot are required." });
@@ -57,27 +56,37 @@ exports.CreateBooking = async (req, res) => {
     if (!venue) {
       return res.status(404).json({ message: "Venue not found." });
     }
-
-    const selectedDate = new Date(event_date);
-    const dayOfWeek = moment(selectedDate).format("dddd").toLowerCase(); // e.g. 'monday'
-
     // Check if slot is available on that day
-    const timings = venue.timings.get(dayOfWeek);
-    if (!timings || !timings[time_slot] || !timings[time_slot].start || !timings[time_slot].end) {
-      return res.status(400).json({
-        message: `Venue does not offer '${time_slot}' slot on ${dayOfWeek}.`
-      });
+    let parsedDate = moment(event_date, "DD-MM-YYYY", true);
+    if (!parsedDate.isValid()) {
+      return res.status(400).json({ message: "Invalid event_date format. Use DD-MM-YYYY." });
     }
+    if (parsedDate.isBefore(moment(), "day")) {
+      return res.status(409).json({ message: "Cannot book for a past date." });
+    }
+    console.log("data",parsedDate);
+    console.log("data",event_date);
+    // Check if the venue is already booked for this date and time slot
+const existingBooking = await BookingModel.findOne({
+  venue: venueId,
+  event_date:parsedDate, // Make sure it's a Date object
+  time_slot: time_slot,
+  status: { $ne: "rejected" } // optional: ignore rejected bookings
+});
+
+if (existingBooking) {
+  return res.status(409).json({ message: "This venue is already booked for the selected date and time slot." });
+}
+
 
     // Create booking
     const booking = new BookingModel({
       host: hostId,
       vendor: venue.vendor,
       venue: venue._id,
-      event_date: selectedDate,
+      event_date:parsedDate,
       time_slot,
       guests,
-      message,
       status: "pending",
     });
 
@@ -97,6 +106,21 @@ exports.CreateBooking = async (req, res) => {
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+
+//!______________________ Single Venue _________________________________!
+exports.SingleVenue=async(req,res)=>{
+  try {
+       const venueId=req.params.id;
+       const venue=await VenueModel.findById(venueId).populate('bookings');
+       if(!venue){
+        return res.status(404).json({message:"venue not exist"})
+       }
+       res.status(200).json({message:"venue data found",venue})
+  } catch (error) {
+     return res.status(500).json({message:"something went wrong please try again.Later",error})
+  }
+}
 
 
 
