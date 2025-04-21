@@ -1,5 +1,4 @@
 // utils/profileUtils.js (or inside your controller file)
-
 const HostModel = require("../models/hostModel");
 const VendorModel = require("../models/vendorModel");
 
@@ -23,7 +22,7 @@ const CreateHostProfile = (profileData, phone_no) => {
     });
   };
   
-  const CreateVendorProfile = (profileData, phone_no) => {
+const CreateVendorProfile = (profileData, phone_no) => {
     const {
       first_name,
       last_name,
@@ -71,5 +70,5 @@ const CreateHostProfile = (profileData, phone_no) => {
   };
   
 
-  module.exports={CreateHostProfile,CreateVendorProfile}
+module.exports={CreateHostProfile,CreateVendorProfile}
   

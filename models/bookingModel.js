@@ -18,6 +18,11 @@ const BookingSchema = new Schema(
       ref: "venue",
       required: true,
     },
+    service: {
+      type: Schema.Types.ObjectId,
+      ref: "service",
+      required: true,
+    },
     event_date: {
       type: Date,
       required: true,

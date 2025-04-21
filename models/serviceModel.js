@@ -16,7 +16,7 @@ const ServiceSchema = new Schema({
   },
   vendor: {
     type: Schema.Types.ObjectId,
-    ref: 'Vendor',
+    ref: 'vendor',
     required: true
   },
   category: {
@@ -27,7 +27,11 @@ const ServiceSchema = new Schema({
      type:String,
      enum:["under-review","pending","active"],
      default:"under-review"
-  }
+  },
+  bookings: [{
+    type: Schema.Types.ObjectId,
+    ref: 'booking' 
+  }]
 }, { timestamps: true });
 
   const ServicesModel= mongoose.model('service', ServiceSchema);
