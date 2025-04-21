@@ -3,6 +3,7 @@ const VendorModel = require("../models/vendorModel");
 const VenueModel = require("../models/venueModel");
 const UserModel = require("../models/userModel");
 const validateTimings = require("../utils/venueUtils");
+const ServicesModel = require("../models/serviceModel");
 
 
 //!___________________ Vendor Profile __________________!
@@ -67,7 +68,6 @@ exports.CreateVenue=async(req,res)=>{
         extra_services
      });
      await newVenue.save();
-     console.log("venue",newVenue._id);
      profile.venues.push(newVenue._id);
      await profile.save();
      res.status(201).json({
@@ -104,6 +104,42 @@ exports.CreateVenue=async(req,res)=>{
 //     return res.status(500).json({ message: "Internal server error." });
 //   }
 // }
+
+
+//!______________________________ Get all vendor Venues _______________________!
+exports.VendorVenues=async(req,res)=>{
+  try {
+        const vendorId=req.params.id;
+        const vendorDetail=await VendorModel.findById(vendorId).populate("venues");
+        if(!vendorDetail){
+          return res.status(404).json({message:"venues not exist"})
+        }
+        res.status(200).json({message:"venues of the user",vendorDetail})
+  } catch (error) {
+     console.log("error",error);
+     return res.status(500).json({message:"please try again.Later"})
+  }
+}
+
+
+//!_______________________ Vendor Single Venue _________________________!
+exports.VendorSingleVenue=async(req,res)=>{
+  try {
+     const vendorId=req.params.id;
+     const {venueId}=req.body;
+     const venue=await VenueModel.findById(venueId);
+     if(!venue){
+      return res.status(404).json({message:"venue not found"}); 
+     }
+     if (venue.vendor.toString() !== vendorId){
+      return res.status(401).json({message:"not authorized to this venue"});
+     } 
+     res.status(200).json({message:"venue founded",venue});
+  } catch (error) {
+    return res.status(500).json({message:'please try again.Later'})
+  }
+}
+
 
 // !__________________ Update Venue _______________________!
 exports.UpdateVenue = async (req, res) => {
@@ -169,5 +205,32 @@ exports.DeleteVenue=async(req,res)=>{
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+//!_________________ Vendor Create Service _________________!
+exports.CreateService=async(req,res)=>{
+  try {
+       const vendorId=req.params.id;
+       const profile=await VendorModel.findById(vendorId);
+       if(!profile){
+        return res.status(404).json({message:"vendor not exist"})
+       }
+       const {title,description,price,category,}=req.body;
+       const newService=new ServicesModel({
+         title,
+         description,
+         price,
+         category,
+         vendor:vendorId,
+       })
+       await newService.save();
+       profile.services.push(newService._id);
+       await profile.save();
+       res.status(201).json({message:"service created Successuly"})
+    
+  } catch (error) {
+    return res.status(500).json({message:"please try again.Later"})
   }
 }

@@ -1,7 +1,8 @@
 
-const mongooes=new mongooes();
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
 const ServiceSchema = new Schema({
-  name: {
+  title: {
     type: String,
     required: true
   },
@@ -10,19 +11,22 @@ const ServiceSchema = new Schema({
     type: Number,
     required: true
   },
+  img:{
+     type:[String]
+  },
   vendor: {
     type: Schema.Types.ObjectId,
     ref: 'Vendor',
     required: true
   },
-  venue: {
-    type: Schema.Types.ObjectId,
-    ref: 'Venue',
-    default: null // Only set if service is tied to a venue
-  },
   category: {
     type: String, // e.g., 'Car Rental', 'Catering', 'Photography'
     required: true
+  },
+  status:{
+     type:String,
+     enum:["under-review","pending","active"],
+     default:"under-review"
   }
 }, { timestamps: true });
 
