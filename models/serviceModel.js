@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const ServiceSchema = new Schema({
@@ -23,11 +22,11 @@ const ServiceSchema = new Schema({
     type: String, // e.g., 'Car Rental', 'Catering', 'Photography'
     required: true
   },
-  status:{
-     type:String,
-     enum:["under-review","pending","active"],
-     default:"under-review"
-  },
+  // status:{
+  //    type:String,
+  //    enum:["under-review","pending","active"],
+  //    default:"under-review"
+  // },
   bookings: [{
     type: Schema.Types.ObjectId,
     ref: 'booking' 

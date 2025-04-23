@@ -217,7 +217,7 @@ exports.CreateService=async(req,res)=>{
        if(!profile){
         return res.status(404).json({message:"vendor not exist"})
        }
-       const {title,description,price,category,}=req.body;
+       const {title,description,price,category}=req.body;
        const newService=new ServicesModel({
          title,
          description,
@@ -234,3 +234,66 @@ exports.CreateService=async(req,res)=>{
     return res.status(500).json({message:"please try again.Later"})
   }
 }
+
+//!_________________ Update Service _____________________!
+exports.UpdateService=async(req,res)=>{
+  try {
+      const vendorId=req.params.id;
+      console.log("vendorId",vendorId);
+      const {serviceId,title,price,description,category}=req.body;
+      const vendor = await VendorModel.findById(vendorId);
+      if(!vendor){
+         return res.status(404).json({message:"vendor not exist"})
+      }
+      const service=await ServicesModel.findById(serviceId);
+      if(!service){
+        return res.status(404).json({message:"service not exist"});
+      }
+      console.log("s4rvioce vendor",service.vendor);
+      if(service.vendor.toString() !== vendorId){
+        return res.status(401).json({message:"not authorized to update"});
+      }
+       service.title=title
+       service.description=description
+       service.category=category
+       service.price=price
+       await service.save();
+       res.status(200).json({message:"service updated"})
+      
+  } catch (error) {
+    console.log("error",error);
+    return res.status(500).json({message:"please try again.Later"})
+  }
+}
+
+//!_________________ Delete Service ___________________________!
+exports.DeleteService = async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const { serviceId } = req.body;
+
+    const service = await ServicesModel.findOne({ _id: serviceId, vendor: vendorId });
+
+    if (!service) {
+      return res.status(404).json({ message: 'Service not found for this vendor' });
+    }
+    await ServicesModel.findByIdAndDelete(serviceId);
+    await VendorModel.findByIdAndUpdate(vendorId, {
+      $pull: { services: serviceId }
+    });
+    return res.status(200).json({ message: 'Service deleted successfully' });
+  } catch (error) {
+    console.error('DeleteService Error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// const vendor = await VendorModel.findByIdAndUpdate(
+//   vendorId,
+//   { $pull: { services: serviceId } }, 
+//   { new: true }
+// );
+// if(!vendor){
+//    return res.status(404).jon({message:"vendor not exist"})
+// }

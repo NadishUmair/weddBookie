@@ -88,7 +88,7 @@ exports.CreateBooking = async (req, res) => {
     }
     // Create booking
     console.log("extra services",extra_services);
-    const SelectedExtra= extra_services.map((id)=>{
+    const SelectedExtra= extra_services?.map((id)=>{
       const service=venue.extra_services.find((s)=>s._id.toString()===id)
       if (!service) throw new Error("Invalid extra service selected");
       return {

@@ -21,7 +21,7 @@ const BookingSchema = new Schema(
     service: {
       type: Schema.Types.ObjectId,
       ref: "service",
-      required: true,
+   
     },
     event_date: {
       type: Date,
