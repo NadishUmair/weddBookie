@@ -5,6 +5,7 @@ const HostModel = require("../models/hostModel");
 const VendorModel = require("../models/vendorModel");
 const SendEmail = require("../utils/nodemailer");
 const { CreateHostProfile, CreateVendorProfile } = require("../utils/profileUtils");
+const { signupOtpTemplate, forgetPasswordTempalate, resetPasswordTemplate } = require("../utils/emailTemplates");
 
 
 const generateOtp = () => {
@@ -58,24 +59,8 @@ exports.signup = async (req, res) => {
       const otp=generateOtp();
       newUser.otp=otp;
       await newUser.save();
-     const request = {
-      subject: "Welcome to Wed Bookie!",
-      message: `Hi there!
-    
-    Welcome to Wed Bookie! 🎉 We're excited to have you on board.
-    
-    To get started, we've sent you a One-Time Password (OTP) to verify your account.
-    
-    Please enter this OTP in the app to complete your sign-up process.
-    
-    You can now log in and start exploring all the awesome features we offer. If you ever have any questions or need help, our support team is just an email away.
-    
-    Thanks for joining us!
-    
-    Cheers,  
-    The Wed Bookie Team`
-    };
-    await SendEmail(res,email,request, profileData.first_name,otp)
+      const emailTemplate = signupOtpTemplate(profileData.first_name, otp);
+      await SendEmail(res, email, emailTemplate);
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     console.error(err);
@@ -197,18 +182,14 @@ exports.forgetPassword = async (req, res) => {
     const forgetPasstoken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    const request = {
-      subject: "OTP",
-      message: `Please enter this OTP in the application to proceed. Remember, this OTP is valid for a limited time only. 
-                        If you did not request this OTP, please disregard this email or contact our support team for assistance.`,
-    };
 
-    await SendEmail(res, user.email, request,user.profile.first_name, otp);
+    const forgetPassTem= forgetPasswordTempalate(user.profile.first_name,otp)
+    await SendEmail(res, user.email,forgetPassTem);
     res
       .status(200)
       .json({ message: "otp sent to your email", forgetPasstoken, otp });
   } catch (err) {
-    console.error(err);
+
     res.status(500).json({ message: "Error resetting password" });
   }
 };
@@ -241,7 +222,7 @@ exports.resetPassword = async (req, res) => {
   try {
     const userId = req.userId;
     const { password } = req.body;
-    const user = await UserModel.findById(userId);
+    const user = await UserModel.findById(userId).populate('profile');
     if (!user) {
       return res.status(404).json({ message: "user not exist" });
     }
@@ -255,22 +236,11 @@ exports.resetPassword = async (req, res) => {
     user.password = hashPassword;
     user.otp=null;
     await user.save();
-    const request = {
-      subject: "Your Password Has Been Updated",
-      message: `Hi there,
-    
-    We wanted to let you know that your password was successfully updated. If you made this change, no further action is needed.
-    
-    If you didn’t update your password, please contact our support team immediately so we can secure your account.
-    
-    Stay safe!
-    
-    Cheers,  
-    The Wed Bookie Team`
-    };
-    await SendEmail(res,user.email,request,user.profile.first_name);
+    const resetPassTemp=resetPasswordTemplate(user?.profile?.first_name)
+    await SendEmail(res,user.email,resetPassTemp);
     res.status(200).json({ message: "password changed successfully" });
   } catch (error) {
+    console.log("eror",error);
     return res.status(500).json({ message: "try again.Later" });
   }
 };

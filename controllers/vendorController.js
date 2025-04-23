@@ -31,22 +31,19 @@ exports.VendorProfile=async(req,res)=>{
 // !__________________________ Create Venue ________________!
 exports.CreateVenue=async(req,res)=>{
   try {
-     const role=req.role;
-     console.log("role",role);
-     if(role !== 'vendor'){
-      return res.status(401).json({message:"you are not authorized to create venue"});
-     }
-    const profileId=req.params.id;
+     const userId=req.params.id;
+      const user=await UserModel.findById(userId).populate('profile');
+      console.log("user",user);
+      if (!user || user.role !== "vendor") {
+        return res.status(404).json({ message: "vendor user not found or unauthorized" });
+      }
+   
     const {title,street,city,state,country,postal_code,services,capacity,timings,extra_services}=req.body;
-    const profile=await VendorModel.findById(profileId);
-    if(!profile){
-      return res.status(404).json({message:"vendor profile not exist"})
-    };
     // console.log("verification",profile.verification);
-    if(profile.verification === 'under_review'){
+    if(user.profile.verification === 'under_review'){
       return res.status(401).json({message:"you can't process because your profile is under review"});
     }
-    if(profile.verification === 'rejected'){
+    if(user.profile.verification === 'rejected'){
       return res.status(401).json({message:"you'r vendor profile is rejected please contact administration"});
     }
     // Basic check assuming timings is an object like: { start: "21:00", end: "20:00" }
@@ -55,7 +52,7 @@ exports.CreateVenue=async(req,res)=>{
       return res.status(400).json({ message: timingError });
     }
      const newVenue=new VenueModel({
-        vendor:profileId,
+        vendor:user.profile._id,
         title,
         street,
         city,
@@ -68,8 +65,8 @@ exports.CreateVenue=async(req,res)=>{
         extra_services
      });
      await newVenue.save();
-     profile.venues.push(newVenue._id);
-     await profile.save();
+     user.profile.venues.push(newVenue._id);
+     await user.profile.save();
      res.status(201).json({
       message:"venue created successfully"
      })
@@ -107,31 +104,47 @@ exports.CreateVenue=async(req,res)=>{
 
 
 //!______________________________ Get all vendor Venues _______________________!
-exports.VendorVenues=async(req,res)=>{
+exports.VendorVenues = async (req, res) => {
   try {
-        const vendorId=req.params.id;
-        const vendorDetail=await VendorModel.findById(vendorId).populate("venues");
-        if(!vendorDetail){
-          return res.status(404).json({message:"venues not exist"})
-        }
-        res.status(200).json({message:"venues of the user",vendorDetail})
+    const userId = req.params.id;
+
+    const user = await UserModel.findById(userId)
+      .select("-password") // ⛔ exclude password
+      .populate({
+        path: "profile",
+        populate: {
+          path: "venues", // ✅ populate venues inside profile
+        },
+      });
+
+    if (!user || user.role !== "vendor") {
+      return res
+        .status(404)
+        .json({ message: "Vendor user not found or unauthorized" });
+    }
+
+    res.status(200).json({
+      message: "Venues retrieved successfully",
+      venues: user.profile.venues || [],
+    });
   } catch (error) {
-     console.log("error",error);
-     return res.status(500).json({message:"please try again.Later"})
+    console.log("VendorVenues Error:", error);
+    return res.status(500).json({ message: "Please try again later." });
   }
-}
+};
+
 
 
 //!_______________________ Vendor Single Venue _________________________!
 exports.VendorSingleVenue=async(req,res)=>{
   try {
-     const vendorId=req.params.id;
+     const userId=req.params.id;
      const {venueId}=req.body;
      const venue=await VenueModel.findById(venueId);
      if(!venue){
       return res.status(404).json({message:"venue not found"}); 
      }
-     if (venue.vendor.toString() !== vendorId){
+     if (venue.vendor.toString() !== userId){
       return res.status(401).json({message:"not authorized to this venue"});
      } 
      res.status(200).json({message:"venue founded",venue});
@@ -144,16 +157,13 @@ exports.VendorSingleVenue=async(req,res)=>{
 // !__________________ Update Venue _______________________!
 exports.UpdateVenue = async (req, res) => {
   try {
-    const role = req.role;
-    console.log('role',role);
-    const vendorId = req.params.id;
+    const userId = req.params.id;
     const {updateData,venueId} = req.body;
-    if (role !== 'vendor') {
-      return res.status(401).json({ message: "You are not authorized to update a venue" });
-    } 
-    const vendor = await VendorModel.findById(vendorId);
-    if (!vendor) {
-      return res.status(404).json({ message: "Vendor profile does not exist" });
+ 
+    const user=await UserModel.findById(userId).populate('profile');
+    console.log("user",user);
+    if (!user || user.role !== "vendor") {
+      return res.status(404).json({ message: "vendor user not found or unauthorized" });
     }
 
     const venue = await VenueModel.findById(venueId);
@@ -161,7 +171,7 @@ exports.UpdateVenue = async (req, res) => {
       return res.status(404).json({ message: "venue not exist" });
     }
 
-    if (!venue.vendor.equals(vendor._id)) {
+    if (!venue.vendor.equals(user.profile._id)) {
       return res.status(403).json({ message: "This venue does not belong to you" });
     }
 
@@ -182,77 +192,101 @@ exports.UpdateVenue = async (req, res) => {
 
 
 //!___________________ Delete Venue _______________________!
-exports.DeleteVenue=async(req,res)=>{
+exports.DeleteVenue = async (req, res) => {
   try {
-         const vendorId = req.params.id;
-         const {venueId} = req.body;
-         console.log("venueId",venueId);
-         console.log("vendorId",vendorId);
-         const vendor = await VendorModel.findByIdAndUpdate(
-          vendorId,
-          { $pull: { venues: venueId } }, 
-          { new: true }
-        );
-         if(!vendor){
-          return res.status(409).json({message:"vendor not exist "});
-         }
-         const venue=await VenueModel.findByIdAndDelete(venueId);
-         if(!venue){
-          return res.status(409).json({message:"venue not belong to you"});
-         }
-       
-    return res.status(200).json({ message: "Venue deleted successfully", vendor });   
+    const userId = req.params.id;
+    const { venueId } = req.body;
+
+    // 1. Fetch user and ensure they are a vendor
+    const user = await UserModel.findById(userId).populate("profile");
+
+    if (!user || user.role !== "vendor") {
+      return res.status(403).json({ message: "Unauthorized or user not found." });
+    }
+
+    const vendorProfile = user.profile;
+
+    if (!vendorProfile.venues.includes(venueId)) {
+      return res.status(404).json({ message: "Venue does not belong to this vendor." });
+    }
+
+    // 2. Remove venue reference from vendor profile
+    vendorProfile.venues.pull(venueId);
+    await vendorProfile.save();
+
+    // 3. Delete the venue from DB
+    const deletedVenue = await VenueModel.findByIdAndDelete(venueId);
+    if (!deletedVenue) {
+      return res.status(404).json({ message: "Venue not found in database." });
+    }
+
+    res.status(200).json({
+      message: "Venue deleted successfully.",
+      deletedVenueId: venueId,
+    });
+
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("DeleteVenue Error:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
-}
+};
+
 
 
 //!_________________ Vendor Create Service _________________!
-exports.CreateService=async(req,res)=>{
+exports.CreateService = async (req, res) => {
   try {
-       const vendorId=req.params.id;
-       const profile=await VendorModel.findById(vendorId);
-       if(!profile){
-        return res.status(404).json({message:"vendor not exist"})
-       }
-       const {title,description,price,category}=req.body;
-       const newService=new ServicesModel({
-         title,
-         description,
-         price,
-         category,
-         vendor:vendorId,
-       })
-       await newService.save();
-       profile.services.push(newService._id);
-       await profile.save();
-       res.status(201).json({message:"service created Successuly"})
-    
+    const userId = req.params.id;
+    const user = await UserModel.findById(userId).populate("profile");
+
+    if (!user || user.role !== "vendor") {
+      return res.status(403).json({ message: "Unauthorized or user not found." });
+    }
+
+    const { title, description, price, category } = req.body;
+
+    // Create new service with correct vendor ID
+    const newService = new ServicesModel({
+      title,
+      description,
+      price,
+      category,
+      vendor: user.profile._id, // <-- fix here
+    });
+
+    await newService.save();
+
+    // Add to profile's services and save profile
+    user.profile.services.push(newService._id);
+    await user.profile.save(); // <-- save the profile, not the user
+
+    return res.status(201).json({ message: "Service created successfully" });
   } catch (error) {
-    return res.status(500).json({message:"please try again.Later"})
+    console.error("Error:", error);
+    return res.status(500).json({ message: "Please try again later." });
   }
-}
+};
+
 
 //!_________________ Update Service _____________________!
 exports.UpdateService=async(req,res)=>{
   try {
-      const vendorId=req.params.id;
-      console.log("vendorId",vendorId);
+      
       const {serviceId,title,price,description,category}=req.body;
-      const vendor = await VendorModel.findById(vendorId);
-      if(!vendor){
-         return res.status(404).json({message:"vendor not exist"})
+      const userId = req.params.id;
+      const user = await UserModel.findById(userId).populate("profile");
+      console.log("user",user.profile._id);
+      if (!user || user.role !== "vendor") {
+        return res.status(403).json({ message: "Unauthorized or user not found." });
       }
-      const service=await ServicesModel.findById(serviceId);
-      if(!service){
-        return res.status(404).json({message:"service not exist"});
-      }
-      console.log("s4rvioce vendor",service.vendor);
-      if(service.vendor.toString() !== vendorId){
-        return res.status(401).json({message:"not authorized to update"});
-      }
+        const service=await ServicesModel.findById(serviceId);
+        if(!service){
+          return res.status(404).json({message:"service not exist"});
+        }
+        console.log("user",service.vendor);
+        if(service.vendor.toString() !== user.profile._id.toString()){
+          return res.status(401).json({message:"not authorized to update"});
+        }
        service.title=title
        service.description=description
        service.category=category
@@ -289,11 +323,3 @@ exports.DeleteService = async (req, res) => {
 };
 
 
-// const vendor = await VendorModel.findByIdAndUpdate(
-//   vendorId,
-//   { $pull: { services: serviceId } }, 
-//   { new: true }
-// );
-// if(!vendor){
-//    return res.status(404).jon({message:"vendor not exist"})
-// }

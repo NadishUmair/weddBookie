@@ -13,34 +13,39 @@ const BookingSchema = new Schema(
       ref: "vendor",
       required: true,
     },
+    // Only required for venue booking
     venue: {
       type: Schema.Types.ObjectId,
       ref: "venue",
-      required: true,
+      default: null,
     },
+    // Only required for service booking
     service: {
       type: Schema.Types.ObjectId,
       ref: "service",
-   
+      default: null,
     },
-    event_date: {
+    date: {
       type: Date,
-      required: true,
     },
+    // Only relevant for venue bookings
     time_slot: {
       type: String,
       enum: ["morning", "afternoon", "evening"],
+      default: null,
     },
+    // Optional depending on booking type
     guests: {
       type: Number,
-      required: true,
+      default: null,
     },
+    // Optional, only for venue bookings with extra services
     extra_services: [
       {
         name: { type: String },
         price: { type: Number }
       }
-    ],    
+    ],
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],

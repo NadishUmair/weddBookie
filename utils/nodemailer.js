@@ -1,8 +1,8 @@
 const nodemailer = require("nodemailer");
 
 
-const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') => {
-  // console.log("request",res)
+const SendEmail = async (res, EmailAddress,template) => {
+  console.log("request message in email",template);
   try {
     const Transporter = nodemailer.createTransport({
       service: "Gmail",
@@ -20,7 +20,7 @@ const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') =
     const MailOptions = {
       from: process.env.SMTP_EMAIL,
       to: EmailAddress,
-      subject: request.subject,
+      subject: template.subject,
       html:`
      <html>
 <head>
@@ -58,13 +58,7 @@ const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') =
       max-width: 520px;
       margin: 0 auto;
     }
-    .otp {
-      color: #007c26;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
+ 
     .footer {
       font-size: 12px;
       text-align: center;
@@ -104,18 +98,14 @@ const SendEmail = async (res, EmailAddress, request, userName = "User",otp='') =
           <img src="/uploads/logo.png" alt="WedBookie Logo" />
         </div>
         <div class="container">
-          <div class="header">
-            Welcome, ${userName}!
-          </div>
           <div class="content">
-            <p>${request?.message}</p>
-            ${otp ? `<div class="otp">${otp}</div>` : ""}
+            <p>${template.message}</p>
+            
             <p>We’re happy to have you with us. Feel free to explore and enjoy the features we’ve built just for you.</p>
          
           </div>
           <div class="footer">
             <p>WED BOOKIE (Pvt) Ltd</p>
-            <p>This message was emailed to ${userName} because you created a WedBookie account.</p>
             <a href="https://www.WedBookie.com/" class="weblink">WedBookie.com</a>
           </div>
         </div>
