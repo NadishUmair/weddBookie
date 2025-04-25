@@ -7,7 +7,7 @@ const VenueSchema = new Schema(
       ref: "vendor",
       required: true,
     },
-    title: {
+    name: {
       type: String,
       required: true,
     },

@@ -4,7 +4,6 @@ const UserModel = require("../models/userModel");
 const HostModel = require("../models/hostModel");
 const VendorModel = require("../models/vendorModel");
 const SendEmail = require("../utils/nodemailer");
-const { CreateHostProfile, CreateVendorProfile } = require("../utils/profileUtils");
 const { signupOtpTemplate, forgetPasswordTempalate, resetPasswordTemplate } = require("../utils/emailTemplates");
 
 
@@ -13,7 +12,7 @@ const generateOtp = () => {
 };
 // Signup Controller
 exports.signup = async (req, res) => {
-  const { email, password, role,phone_no, profileData } = req.body;
+  const { email, password, role,phone_no} = req.body;
   // profileData will include specific fields like estimated_guests for hosts or category for vendors
 
   try {
@@ -36,30 +35,17 @@ exports.signup = async (req, res) => {
     return res.status(409).json({message:"phone no already exist pleasse use another"})
     }
     const hashedPassword = await bcrypt.hash(password, 10);
- 
-
-    // Create corresponding profile (Vendor/Host) based on role and profileModel
-    if (role === "host") {
-      newProfile = CreateHostProfile(profileData, phone_no);
-    } else if (role === "vendor") {
-      newProfile = CreateVendorProfile(profileData, phone_no);
-      if (newProfile.error) {
-        return res.status(400).json({ message: newProfile.error });
-      }
-    }
-    await newProfile.save();
     const newUser = new UserModel({
       email,
       password: hashedPassword,
       phone_no,
-      profile:newProfile._id,
       role,
       isVerified: false,
     });
       const otp=generateOtp();
       newUser.otp=otp;
       await newUser.save();
-      const emailTemplate = signupOtpTemplate(profileData.first_name, otp);
+      const emailTemplate = signupOtpTemplate(newUser.email, otp);
       await SendEmail(res, email, emailTemplate);
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {

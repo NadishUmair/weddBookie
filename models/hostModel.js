@@ -7,10 +7,6 @@ const HostSchema = new Schema({
     required: true,
   },
   last_name: String,
-  phone_no: {
-    type: String,
-    required: true,
-  },
   country: {
     type: String,
     required: true,

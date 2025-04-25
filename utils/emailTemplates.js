@@ -1,9 +1,8 @@
-
-// welcome tempolate 
+// welcome tempolate
 exports.welcomeEmailTemplate = (firstName) => {
-    return {
-      subject: "Welcome to Wed Bookie!",
-      message: `Hi ${firstName}!
+  return {
+    subject: "Welcome to Wed Bookie!",
+    message: `Hi ${firstName}!
   
   Welcome to Wed Bookie! 🎉 We're excited to have you on board.
   
@@ -16,16 +15,15 @@ exports.welcomeEmailTemplate = (firstName) => {
   Thanks for joining us!
   
   Cheers,  
-  The Wed Bookie Team`
-    };
+  The Wed Bookie Team`,
   };
-
+};
 
 // signup otp template
 exports.signupOtpTemplate = (first_name, otp) => {
-    return {
-      subject: "Welcome to Wed Bookie!",
-      message: `Hi ${first_name}!
+  return {
+    subject: "Welcome to Wed Bookie!",
+    message: `Hi ${first_name}!
   
   Welcome to Wed Bookie! 🎉 We're excited to have you on board.
   
@@ -43,16 +41,15 @@ exports.signupOtpTemplate = (first_name, otp) => {
   Thanks for joining us!
   
   Cheers,  
-  The Wed Bookie Team`
-    };
+  The Wed Bookie Team`,
   };
+};
 
-
-//   for get password tempalte 
-  exports.forgetPasswordTempalate=(first_name,otp)=>{
-    return {
-        subject: `forget passsword`,
-        message: `Hi ${first_name},
+//   for get password tempalte
+exports.forgetPasswordTempalate = (first_name, otp) => {
+  return {
+    subject: `forget passsword`,
+    message: `Hi ${first_name},
     
     Please enter this OTP in the application to proceed. Remember, this OTP is valid for a limited time only. 
       <h1 style="color: #007c26; text-align: center; font-size: 24px; font-weight: bold; margin: 20px 0;">
@@ -61,16 +58,15 @@ exports.signupOtpTemplate = (first_name, otp) => {
     
     If you did not request this OTP, please disregard this email or contact our support team for assistance.
     Cheers,  
-    The Wed Bookie Team`
-      };
-  }
-  
+    The Wed Bookie Team`,
+  };
+};
 
 //   reset password email template
-  exports.resetPasswordTemplate=(first_name)=>{
-    return {
-        subject: `passsword changed`,
-        message: `Hi ${first_name},
+exports.resetPasswordTemplate = (first_name) => {
+  return {
+    subject: `passsword changed`,
+    message: `Hi ${first_name},
     
    Hi there,
     
@@ -81,21 +77,19 @@ exports.signupOtpTemplate = (first_name, otp) => {
     Stay safe!
     
     Cheers,  
-    The Wed Bookie Team`
-      };
-  }
+    The Wed Bookie Team`,
+  };
+};
 
-
-
-  //   booking tempalate
+//   booking tempalate for host
 exports.hostBookingTemplates = (firstName, serviceName, bookingTime) => {
-    return {
-      subject: `Your ${serviceName} Booking is Confirmed! 🎉`,
-      message: `Hi ${firstName},
+  return {
+    subject: `Your ${serviceName} Booking is Confirmed! 🎉`,
+    message: `Hi ${firstName},
   
   Thank you for booking the ${serviceName} with Wed Bookie!
   
-  📅 Booking Time: ${bookingTime}
+   Booking Time: ${bookingTime}
   
   We’re thrilled to be part of your special occasion. You can view all your bookings anytime in your dashboard.
   
@@ -104,10 +98,92 @@ exports.hostBookingTemplates = (firstName, serviceName, bookingTime) => {
   We look forward to helping make your event amazing!
   
   Cheers,  
-  The Wed Bookie Team`
-    };
+  The Wed Bookie Team`,
   };
-  
+};
 
+//  booking template for vendor
+exports.vendorBookingTemplates = (
+  vendorName,
+  venueName,
+  bookingTime,
+  hostName
+) => {
+  return {
+    subject: `New Booking Request for ${venueName}!`,
+    message: `Hi ${vendorName},
   
+  You have received a new booking request for your venue, ${venueName}, from ${hostName}.
   
+  Booking Time: ${bookingTime}
+  
+  If you have any questions or need assistance, feel free to reach out to our support team.
+  
+  We look forward to making this event successful!
+  
+  Cheers,  
+  The Wed Bookie Team`,
+  };
+};
+
+// Host Service Buying Template
+exports.hostServicePurchaseTemplate = (
+  firstName,
+  serviceName,
+  purchaseTime,
+  servicePrice
+) => {
+  return {
+    subject: `Your Purchase of ${serviceName} is Confirmed! 🎉`,
+    message: `Hi ${firstName},
+
+Thank you for purchasing the ${serviceName} through Wed Bookie!
+
+**Purchase Details:**
+- **Service:** ${serviceName}
+- **Price:** $${servicePrice}
+- **Purchase Time:** ${purchaseTime}
+
+We’re excited that you chose Wed Bookie for your event needs. All of your services and bookings are accessible from your dashboard, where you can keep track of upcoming events and services you've purchased.
+
+If you have any questions or need assistance, don't hesitate to reach out to our support team.
+
+We are looking forward to making your event an unforgettable experience!
+
+Cheers,  
+The Wed Bookie Team`,
+  };
+};
+
+// Vendor Service Booking Template
+exports.vendorServiceBookingTemplate = (
+  firstName,
+  serviceName,
+  bookingTime,
+  hostName,
+  servicePrice
+) => {
+  return {
+    subject: `You Have a New Booking for ${serviceName}! 🎉`,
+    message: `Hi ${firstName},
+
+Good news! You’ve received a new booking for your ${serviceName} service!
+
+**Booking Details:**
+- **Service:** ${serviceName}
+- **Price:** $${servicePrice}
+- **Booking Time:** ${bookingTime}
+- **Host Name:** ${hostName}
+
+We are excited to help make this event a memorable one. Please ensure you prepare everything to provide the best experience for the host.
+
+You can view all your bookings anytime in your vendor dashboard.
+
+If you need any assistance or have questions, feel free to reach out to our support team. 
+
+We look forward to helping you make this event amazing!
+
+Cheers,  
+The Wed Bookie Team`,
+  };
+};

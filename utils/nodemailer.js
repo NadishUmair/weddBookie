@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 
 
 const SendEmail = async (res, EmailAddress,template) => {
-  console.log("request message in email",template);
+
   try {
     const Transporter = nodemailer.createTransport({
       service: "Gmail",

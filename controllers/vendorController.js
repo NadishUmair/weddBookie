@@ -5,6 +5,134 @@ const UserModel = require("../models/userModel");
 const validateTimings = require("../utils/venueUtils");
 const ServicesModel = require("../models/serviceModel");
 
+//!__________________ Profile Update __________________________!
+exports.VendorCreateProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.params.id;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.role !== 'vendor') {
+      return res.status(403).json({ message: 'Only vendors can create a vendor profile.' });
+    }
+    if (user.profile) {
+      return res.status(400).json({ message: 'profile already exists for this user.' });
+    }
+
+    const {
+      first_name,
+      last_name,
+      category,
+      country,
+      business_registration,
+      business_license_number,
+      business_license_doc,
+      street,
+      city,
+      state,
+      postal_code,
+      website,
+      social_links,
+      business_type,
+      tax_id_number,
+      years_of_experience,
+    } = req.body;
+
+    // Required field check
+    if (
+      !first_name || !category || !country || !business_license_number || !business_registration ||
+      !tax_id_number || !street || !city || !state || !postal_code || !website
+    ) {
+      return res.status(400).json({ message: 'All required fields must be provided.' });
+    }
+
+    const newVendorProfile = new VendorModel({
+      first_name,
+      last_name,
+      phone_no: user.phone_no,
+      country,
+      category,
+      business_registration,
+      business_license_number,
+      business_license_doc,
+      street,
+      city,
+      state,
+      postal_code,
+      website,
+      social_links,
+      business_type,
+      tax_id_number,
+      years_of_experience,
+    });
+
+    const savedProfile = await newVendorProfile.save();
+
+    user.profile = savedProfile._id;
+    await user.save();
+
+    return res.status(201).json({
+      message: 'Vendor profile created and linked successfully.',
+      profile: savedProfile,
+      user,
+    });
+  } catch (error) {
+    console.error('Error creating vendor profile:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+//!_____________ Update Vendor Profile ____________________________!
+exports.VendorUpdateProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const updates = req.body;
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'vendor') {
+      return res.status(403).json({ message: 'Only vendor users can update a vendor profile' });
+    }
+
+    if (!user.profile) {
+      return res.status(400).json({ message: 'Vendor profile does not exist' });
+    }
+
+    const updatedProfile = await VendorModel.findByIdAndUpdate(
+      user.profile,
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(500).json({ message: 'Failed to update vendor profile' });
+    }
+
+    return res.status(200).json({
+      message: 'Vendor profile updated successfully',
+      profile: updatedProfile,
+    });
+  } catch (error) {
+    console.error('Error updating vendor profile:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+
+
 
 //!___________________ Vendor Profile __________________!
 exports.VendorProfile=async(req,res)=>{
@@ -38,7 +166,7 @@ exports.CreateVenue=async(req,res)=>{
         return res.status(404).json({ message: "vendor user not found or unauthorized" });
       }
    
-    const {title,street,city,state,country,postal_code,services,capacity,timings,extra_services}=req.body;
+    const {name,street,city,state,country,postal_code,services,capacity,timings,extra_services}=req.body;
     // console.log("verification",profile.verification);
     if(user.profile.verification === 'under_review'){
       return res.status(401).json({message:"you can't process because your profile is under review"});
@@ -53,7 +181,7 @@ exports.CreateVenue=async(req,res)=>{
     }
      const newVenue=new VenueModel({
         vendor:user.profile._id,
-        title,
+        name,
         street,
         city,
         state,
@@ -154,41 +282,48 @@ exports.VendorSingleVenue=async(req,res)=>{
 }
 
 
-// !__________________ Update Venue _______________________!
+// !__________________ Update Venue _______________________!s
+
 exports.UpdateVenue = async (req, res) => {
   try {
     const userId = req.params.id;
-    const {updateData,venueId} = req.body;
- 
-    const user=await UserModel.findById(userId).populate('profile');
-    console.log("user",user);
-    if (!user || user.role !== "vendor") {
-      return res.status(404).json({ message: "vendor user not found or unauthorized" });
+    const { updateData, venueId } = req.body;
+
+    if (!updateData || !venueId) {
+      return res.status(400).json({ message: "Missing update data or venue ID." });
     }
 
-    const venue = await VenueModel.findById(venueId);
-    if (!venue) {
-      return res.status(404).json({ message: "venue not exist" });
+    const user = await UserModel.findById(userId).populate('profile');
+
+    if (!user || user.role !== 'vendor') {
+      return res.status(403).json({ message: 'Vendor user not found or unauthorized.' });
+    }
+    
+    const updatedVenue = await VenueModel.findOneAndUpdate(
+      { _id: venueId, vendor: user.profile._id }, // filter
+      { $set: updateData },                       // update
+      {
+        new: true,             // return updated document
+        runValidators: true,   // validate before saving
+      }
+    )
+     
+    
+    if (!updatedVenue) {
+      return res.status(404).json({ message: 'Venue not found or not owned by this vendor.' });
     }
 
-    if (!venue.vendor.equals(user.profile._id)) {
-      return res.status(403).json({ message: "This venue does not belong to you" });
-    }
-
-    // Update the venue fields
-    Object.assign(venue, updateData);
-    await venue.save();
-
-    res.status(200).json({
-      message: "Venue updated successfully",
-      venue
+    return res.status(200).json({
+      message: 'Venue updated successfully.',
+      venue: updatedVenue,
     });
 
   } catch (error) {
-    console.error("Error updating venue:", error);
-    res.status(500).json({ message: "Please try again later" });
+    console.error('Error updating venue:', error);
+    return res.status(500).json({ message: 'Please try again later.' });
   }
 };
+
 
 
 //!___________________ Delete Venue _______________________!

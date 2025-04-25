@@ -25,8 +25,11 @@ const BookingSchema = new Schema(
       ref: "service",
       default: null,
     },
-    date: {
+    event_date: {
       type: Date,
+    },
+    timezone:{
+      type:String
     },
     // Only relevant for venue bookings
     time_slot: {
