@@ -4,6 +4,7 @@ const VenueModel = require("../models/venueModel");
 const UserModel = require("../models/userModel");
 const validateTimings = require("../utils/venueUtils");
 const ServicesModel = require("../models/serviceModel");
+const BookingModel = require("../models/bookingModel");
 
 //!__________________ Profile Update __________________________!
 exports.VendorCreateProfile = async (req, res) => {
@@ -392,8 +393,6 @@ exports.CreateService = async (req, res) => {
     return res.status(500).json({ message: "Please try again later." });
   }
 };
-
-
 //!_________________ Update Service _____________________!
 exports.UpdateService=async(req,res)=>{
   try {
@@ -447,5 +446,24 @@ exports.DeleteService = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+//!______________________ my bookings (venor) _____________________!
+exports.GetVendorBookings=async(req,res)=>{
+  try {
+        const vendorId=req.params.id;
+        const bookings=await BookingModel.find({
+          vendor:vendorId}).populate("host");
+          if(!bookings){
+            return res.status(404).json({message:"bookings not exist"});
+          };
+          return res.status(200).json({message:"bookings found",bookings})
+  } catch (error) {
+    console.log("error",error);
+    return res.status(500).json({message:"please try again.Later"})
+  }
+}
+
+
 
 

@@ -1,7 +1,7 @@
 
 const express=require('express');
 const { authenticateToken } = require('../middleware/userAuth');
-const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue, DeleteVenueService, VendorVenues, VendorSingleVenue, CreateService, UpdateService, DeleteService, VendorCreateProfile, VendorUpdateProfile } = require('../controllers/vendorController');
+const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue, DeleteVenueService, VendorVenues, VendorSingleVenue, CreateService, UpdateService, DeleteService, VendorCreateProfile, VendorUpdateProfile, GetVendorBookings } = require('../controllers/vendorController');
 
 
 const router=express.Router();
@@ -18,5 +18,6 @@ router.route('/vendor-venue/:id').get(authenticateToken,VendorSingleVenue);
 router.route('/create-service/:id').post(authenticateToken,CreateService);
 router.route('/update-service/:id').put(authenticateToken,UpdateService);
 router.route('/delete-service/:id').delete(authenticateToken,DeleteService);
+router.route('/vendor-bookings/:id').get(authenticateToken,GetVendorBookings);
 
 module.exports=router;

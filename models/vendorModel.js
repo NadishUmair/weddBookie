@@ -22,6 +22,7 @@ const VendorSchema = new Schema(
       enum:["general","premium"],
       default:"general"
     },
+
     business_registration:{ 
       type:String,
       required:true
@@ -89,6 +90,20 @@ const VendorSchema = new Schema(
       enum: ["under_review", "rejected","verified"],
       default:"under_review"
     },
+    payout_info: {
+      stripe_account_id: {
+        type: String, 
+        required: true,
+      },
+      bank_last4: String, 
+      bank_name: String,
+      account_holder_name: String, 
+      currency: {
+        type: String,
+        default: 'usd',
+      },
+    }
+    
   },
   { timestamps: true }
 );
