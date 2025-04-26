@@ -156,7 +156,7 @@ The Wed Bookie Team`,
 };
 
 // Vendor Service Booking Template
-exports.vendorServiceBookingTemplate = (
+exports. vendorServiceBookingTemplate = (
   firstName,
   serviceName,
   bookingTime,

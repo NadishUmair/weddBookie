@@ -130,10 +130,6 @@ exports.VendorUpdateProfile = async (req, res) => {
 };
 
 
-
-
-
-
 //!___________________ Vendor Profile __________________!
 exports.VendorProfile=async(req,res)=>{
   try {
@@ -283,7 +279,6 @@ exports.VendorSingleVenue=async(req,res)=>{
 
 
 // !__________________ Update Venue _______________________!s
-
 exports.UpdateVenue = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -323,8 +318,6 @@ exports.UpdateVenue = async (req, res) => {
     return res.status(500).json({ message: 'Please try again later.' });
   }
 };
-
-
 
 //!___________________ Delete Venue _______________________!
 exports.DeleteVenue = async (req, res) => {
@@ -366,8 +359,6 @@ exports.DeleteVenue = async (req, res) => {
   }
 };
 
-
-
 //!_________________ Vendor Create Service _________________!
 exports.CreateService = async (req, res) => {
   try {
@@ -378,11 +369,11 @@ exports.CreateService = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized or user not found." });
     }
 
-    const { title, description, price, category } = req.body;
+    const { name, description, price, category } = req.body;
 
     // Create new service with correct vendor ID
     const newService = new ServicesModel({
-      title,
+      name,
       description,
       price,
       category,

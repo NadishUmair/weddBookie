@@ -8,6 +8,8 @@ const SendEmail = require("../utils/nodemailer");
 const {
   hostBookingTemplates,
   vendorBookingTemplates,
+  hostServicePurchaseTemplate,
+  vendorServiceBookingTemplate,
 } = require("../utils/emailTemplates");
 const { getUTCFromLocal } = require("../utils/timeZone");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -159,15 +161,15 @@ exports.CreateVenueBooking = async (req, res) => {
       return res.status(400).json({ message: error });
     }
 
-    const venue = await VenueModel.findById(venueId)
+    const service = await ServicesModel.findById(venueId)
       .select("extra_services bookings name") // Select only the necessary fields of the venue
       .populate("vendor", "_id"); // Populate vendor and select only email and first_name
-    if (!venue) {
+    if (!service) {
       return res.status(404).json({ message: "Venue not found." });
     }
 
     // Ensure the vendor is populated with the email
-    const vendor = await UserModel.findOne({ profile: venue.vendor._id })
+    const vendor = await UserModel.findOne({ profile: service.vendor._id })
       .select("email role profile") // include 'role' so populate works!
       .populate("profile", "first_name"); // now this will work properly
 
@@ -234,22 +236,20 @@ exports.CreateVenueBooking = async (req, res) => {
   }
 };
 
-
 //!______________________ Get Single Venue Detail ___________________________1
-exports.SingleVenue=async(req,res)=>{
+exports.SingleVenue = async (req, res) => {
   try {
-      const venueId=req.params.id;
-      const venue=await VenueModel.findById(venueId).populate('bookings');
-      if(!venue){
-        return res.status(404).json({message:"venue not found"})
-      }
-      return res.status(200).json({message:"venue",venue});
+    const venueId = req.params.id;
+    const venue = await VenueModel.findById(venueId).populate("bookings");
+    if (!venue) {
+      return res.status(404).json({ message: "venue not found" });
+    }
+    return res.status(200).json({ message: "venue", venue });
   } catch (error) {
-    console.log("error",error);
-    return res.status(500).json({message:"plase try again.Later"}) 
+    console.log("error", error);
+    return res.status(500).json({ message: "plase try again.Later" });
   }
-}
-
+};
 
 // exports.CreateVenueBooking = async (req, res) => {
 //   try {
@@ -358,7 +358,7 @@ exports.BuyService = async (req, res) => {
         .json({ message: "Host user not found or unauthorized" });
     }
 
-    const { serviceId, event_date, timezone } = req.body;
+     const { serviceId, event_date, timezone } = req.body;
 
     // Ensure all required parameters are present
     if (!event_date || !timezone) {
@@ -373,18 +373,23 @@ exports.BuyService = async (req, res) => {
       return res.status(400).json({ message: error });
     }
 
-  
-   console.log("host",host);
-    const service = await ServicesModel.findById(serviceId).populate("vendor");
+    const service = await ServicesModel.findById(serviceId);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
-    console.log("service",service);
+ 
+    const vendor = await UserModel.findOne({ profile: service.vendor })
+      .select("email role profile") // include 'role' so populate works!
+      .populate("profile", "first_name"); // now this will work properly
+    if (!vendor) {
+      return res.status(404).json({ message: "Vendor not found." });
+    }
+  
     // Create the booking with the UTC date
     const newBooking = new BookingModel({
       service: service._id,
       host: host._id,
-      vendor: service.vendor._id,
+      vendor: service.vendor,
       event_date: utcMoment.toDate(), // Save the UTC time to the database
     });
 
@@ -394,14 +399,29 @@ exports.BuyService = async (req, res) => {
     service.bookings.push(newBooking._id);
     await service.save();
 
+  //   firstName,
+  // serviceName,
+  // purchaseTime,
+  // servicePrice
     // Build and send the email using the template
-    const emailTemplate = hostBookingTemplates(
+    const hostServiceTemplate = hostServicePurchaseTemplate(
       host.profile.first_name,
-      service.title,
-      utcMoment.format("dddd, MMMM Do YYYY, h:mm A") // Format the UTC time
+      service.name,
+      utcMoment.format("dddd, MMMM Do YYYY, h:mm A"), // Format the UTC time
+      service.price
     );
 
-    await SendEmail(res, host.email, emailTemplate);
+    const vendorServiceTemplate = vendorServiceBookingTemplate(
+      host.profile.first_name,
+      service.name,
+      utcMoment.format("dddd, MMMM Do YYYY, h:mm A"), // Format the UTC time
+      host.profile.first_name,
+      service.price
+
+    );
+
+    await SendEmail(res, host.email,  hostServiceTemplate);
+    await SendEmail(res, vendor.email, vendorServiceTemplate);
 
     res.status(201).json({ message: "Service booked successfully." });
   } catch (error) {
@@ -448,5 +468,23 @@ exports.BuyService = async (req, res) => {
 //     res.status(500).json({ message: "Something went wrong", error: error.message });
 //   }
 // };
+
+
+//!__________________ Get All My Bookings (Host) ____________________________!
+exports.GetAllMyBookings=async(req,res)=>{
+  try {
+      const hostId=req.params.id;
+      const bookings=await BookingModel.find({host:hostId}).populate('service');
+      if(!bookings){
+        return res.status(404).json({message:"not any booking exist"})
+      }
+      return res.status(200).json({message:"found bookings",bookings})
+  } catch (error) {
+    console.log("error",error);
+    return res.status(500).json({mesage:"please try again.Later"})
+  }
+}
+
+
 
 
