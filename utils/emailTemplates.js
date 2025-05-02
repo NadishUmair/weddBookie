@@ -214,3 +214,29 @@ Cheers,
 The Wed Bookie Team`,
   };
 };
+
+
+
+exports.adminTwoFactorCodeTemplate = (first_name, otp) => {
+  return {
+    subject: "Your Wed Bookie 2FA Verification Code",
+    message: `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <p>Hi ${first_name},</p>
+
+      <p>We received a request to log into your admin account on <strong>Wed Bookie</strong>.</p>
+
+      <p>Please use the following One-Time Password (OTP) to complete your login:</p>
+
+      <div style="background-color: #f7f7f7; padding: 20px; text-align: center; border-radius: 8px;">
+        <h1 style="color: #007c26; font-size: 32px; margin: 0;">${otp}</h1>
+      </div>
+
+      <p>This code is valid for <strong>5 minutes</strong>. If you didn’t request this login, please ignore this email or contact support.</p>
+
+      <p>Thanks,<br>The Wed Bookie Team</p>
+    </div>
+    `
+  };
+};
+
