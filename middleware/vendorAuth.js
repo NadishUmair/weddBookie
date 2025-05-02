@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 
 
 
-const authenticateToken = async (req, res, next) => {
+const vendorAuthentication = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
@@ -18,7 +18,7 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const role = decoded.role;
-    if (role !== 'host' && role !== 'vendor' && role !== 'admin') {
+    if (role !== 'vendor' ) {
       return res.status(403).json({ message: "Unauthorized role access" });
     }
 
@@ -38,10 +38,7 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-
-
-
-const checkForgetToken = async (req, res, next) => {
+const CheckVendorForgetToken = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
@@ -77,6 +74,4 @@ const checkForgetToken = async (req, res, next) => {
         return res.status(500).json({ message: 'Token verification failed' });
     }
 };
-
-
-module.exports={checkForgetToken,authenticateToken};
+module.exports={vendorAuthentication,CheckVendorForgetToken};

@@ -1,23 +1,33 @@
 
 const express=require('express');
-const { authenticateToken } = require('../middleware/userAuth');
-const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue, DeleteVenueService, VendorVenues, VendorSingleVenue, CreateService, UpdateService, DeleteService, VendorCreateProfile, VendorUpdateProfile, GetVendorBookings } = require('../controllers/vendorController');
+
+const { CreateVenue, UpdateVenue, VendorProfile, DeleteVenue, VendorVenues, VendorSingleVenue, CreateService, UpdateService, DeleteService, VendorUpdateProfile, GetVendorBookings, VendorSingleBooking, VendorSignup, VendorLogin, VendorForgetPassword, VendorVerifyOtp, VendorResetPassword, UpdateVendorProfile, CreatePackage, UpdatePackage, DeletePackage, GetAllPackages, VendorUpdatePassword } = require('../controllers/vendorController');
+const {vendorAuthentication, CheckVendorForgetToken} = require('../middleware/vendorAuth');
 
 
 const router=express.Router();
 
 
-router.route('/create-profile/:id').post(authenticateToken,VendorCreateProfile);
-router.route('/update-profile/:id').put(authenticateToken,VendorUpdateProfile);
-router.route('/create-venue/:id').post(authenticateToken,CreateVenue);
-router.route('/update-venue/:id').put(authenticateToken,UpdateVenue);
-router.route('/vendor-profile/:id').get(authenticateToken,VendorProfile);
-router.route('/delete-venue/:id').delete(authenticateToken,DeleteVenue);
-router.route('/vendor-venues/:id').get(authenticateToken,VendorVenues);
-router.route('/vendor-venue/:id').get(authenticateToken,VendorSingleVenue);
-router.route('/create-service/:id').post(authenticateToken,CreateService);
-router.route('/update-service/:id').put(authenticateToken,UpdateService);
-router.route('/delete-service/:id').delete(authenticateToken,DeleteService);
-router.route('/vendor-bookings/:id').get(authenticateToken,GetVendorBookings);
+router.route('/vendor-signup').post(VendorSignup);
+router.route('/vendor-login').post(VendorLogin);
+router.route("/vendor-forget-password").post(VendorForgetPassword);
+router.route("/vendor-verify-otp").post(CheckVendorForgetToken,VendorVerifyOtp);
+router.route("/vendor-reset-password").post(CheckVendorForgetToken,VendorResetPassword);
+router.route("/vendor-update-password/:id").post(vendorAuthentication,VendorUpdatePassword);
+router.route('/update-profile/:id').put(vendorAuthentication,UpdateVendorProfile);
+
+
+router.route('/create-service/:id').post(vendorAuthentication,CreateService);
+router.route('/update-service/:id').put(vendorAuthentication,UpdateService);
+router.route('/delete-service/:id').delete(vendorAuthentication,DeleteService);
+router.route('/vendor-bookings/:id').get(vendorAuthentication,GetVendorBookings);
+router.route('/vendor-booking-detail/:id').get(vendorAuthentication,VendorSingleBooking);
+
+router.route('/create-package/:id').post(vendorAuthentication,CreatePackage);
+router.route('/update-package/:id').put(vendorAuthentication,UpdatePackage);
+router.route('/delete-package/:id').delete(vendorAuthentication,DeletePackage);
+router.route('/all-packages/:id').get(vendorAuthentication,GetAllPackages);
+
+
 
 module.exports=router;

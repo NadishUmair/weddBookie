@@ -28,8 +28,8 @@ const BookingSchema = new Schema(
     event_date: {
       type: Date,
     },
-    timezone:{
-      type:String
+    timezone: {
+      type: String,
     },
     // Only relevant for venue bookings
     time_slot: {
@@ -42,18 +42,25 @@ const BookingSchema = new Schema(
       type: Number,
       default: null,
     },
+    package: {
+      type: Schema.Types.ObjectId,
+      ref: "package",
+    },
     // Optional, only for venue bookings with extra services
     extra_services: [
       {
         name: { type: String },
-        price: { type: Number }
-      }
+        price: { type: Number },
+      },
     ],
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],
       default: "pending",
     },
+    start_time: { type: Date },
+    end_time: { type: Date },
+
     payment_status: {
       type: String,
       enum: ["unpaid", "paid", "refunded"],

@@ -7,12 +7,35 @@ const VendorSchema = new Schema(
       type: String,
       required: true,
     },
-    last_name: String,
-    phone_no: {
+    last_name:{
+     type:String
+    },
+    country:{
+      type:String,
+      required:true
+    },
+    city: {
+      type: String,
+    },
+  email: {
       type: String,
       required: true,
-    },
+      unique: true
+  },
+  phone_no:{
+      type:Number,
+      required:true
+  },
+  role: {
+    type: String,
+    default:"vendor"
+},
+  password: {
+      type: String,
+      required: true
+  },
     company_name: String,
+    business_desc: String,
     category: {
       type: String,
       required: true,
@@ -22,7 +45,6 @@ const VendorSchema = new Schema(
       enum:["general","premium"],
       default:"general"
     },
-
     business_registration:{ 
       type:String,
       required:true
@@ -37,19 +59,6 @@ const VendorSchema = new Schema(
         ref: "review",
       },
     ],
-    services: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "service",
-      },
-    ],
-    venues: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "venue",
-      },
-    ],
-    portfolio_images: [String],
     isFeatured: {
       type: Boolean,
       default: false,
@@ -62,38 +71,29 @@ const VendorSchema = new Schema(
       type: String,
       enum: ["partnership", "llc", "corporation"],
     },
-    tax_id_number: String,
     website: {
       type:String,
-      required:true
     },
     social_links: [String],
-    city: {
-      type: String,
-      required: true,
-    },
-    state: {
-      type: String,
-      required: true,
-    },
-    country: {
-      type: String,
-      required: true,
-    },
     postal_code: {
       type: String,
-      required: true,
     },
-    years_of_experience: Number,
-    verification: {
+    otp:{
+      type:Number
+     },
+    profile_verification: {
       type: String,
       enum: ["under_review", "rejected","verified"],
       default:"under_review"
     },
+    email_verfied:{
+      type:Boolean,
+      defsult:false
+    },
     payout_info: {
       stripe_account_id: {
         type: String, 
-        required: true,
+   
       },
       bank_last4: String, 
       bank_name: String,
@@ -102,9 +102,75 @@ const VendorSchema = new Schema(
         type: String,
         default: 'usd',
       },
-    }
-    
+    },
+    timings: {
+      type: Map,
+      of: new Schema(
+        {
+          morning: {
+            start: { type: String, required: false },
+            end: { type: String, required: false },
+            status: {
+              type: String,
+              enum: ["active", "disabled"],
+              default: "active",
+            },
+          },
+          afternoon: {
+            start: { type: String, required: false },
+            end: { type: String, required: false },
+            status: {
+              type: String,
+              enum: ["active", "disabled"],
+              default: "active",
+            },
+          },
+          evening: {
+            start: { type: String, required: false },
+            end: { type: String, required: false },
+            status: {
+              type: String,
+              enum: ["active", "disabled"],
+              default: "active",
+            },
+          },
+        },
+        { _id: false }
+      ),
+    },
+    extra_services: [
+      {
+        name: { type: String},
+        description: { type: String },
+        price: { type: Number},
+        is_optional: { type: Boolean},
+      },
+    ],
+    images: {
+      type: [String],
+    },
+    street: {
+      type: String,
+    },
+    postal_code: {
+      type: String,
+    },
+    capacity: {
+      type: Number,    
+    },
+    bookings: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "booking",
+      },
+    ],
+    packages:[{
+      type: Schema.Types.ObjectId,
+      ref:"package"
+    }],
+    lastLogin: Date,
   },
+
   { timestamps: true }
 );
 

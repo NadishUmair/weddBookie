@@ -81,6 +81,23 @@ exports.resetPasswordTemplate = (first_name) => {
   };
 };
 
+// Update Password Template
+exports.updatePasswordTemplate = (first_name) => {
+  return {
+    subject: `passsword changed`,
+    message: `Hi ${first_name},
+          
+          We wanted to let you know that your password was successfully updated. If you made this change, no further action is needed.
+          
+          If you didn’t update your password, please contact our support team immediately so we can secure your account.
+          
+          Stay safe!
+          
+          Cheers,  
+          The Wed Bookie Team`,
+  };
+};
+
 //   booking tempalate for host
 exports.hostBookingTemplates = (firstName, serviceName, bookingTime) => {
   return {
@@ -89,7 +106,12 @@ exports.hostBookingTemplates = (firstName, serviceName, bookingTime) => {
   
   Thank you for booking the ${serviceName} with Wed Bookie!
   
-   Booking Time: ${bookingTime}
+       <p>
+          <strong>Booking Time:</strong>
+          <span style="background-color: #d4edda; color: #155724; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+            ${bookingTime}
+          </span>
+        </p>
   
   We’re thrilled to be part of your special occasion. You can view all your bookings anytime in your dashboard.
   
@@ -115,7 +137,12 @@ exports.vendorBookingTemplates = (
   
   You have received a new booking request for your venue, ${venueName}, from ${hostName}.
   
-  Booking Time: ${bookingTime}
+    <p>
+          <strong>Booking Time:</strong>
+          <span style="background-color: #d4edda; color: #155724; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+            ${bookingTime}
+          </span>
+        </p>
   
   If you have any questions or need assistance, feel free to reach out to our support team.
   

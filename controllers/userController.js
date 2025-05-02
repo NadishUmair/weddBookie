@@ -12,7 +12,7 @@ const generateOtp = () => {
 };
 // Signup Controller
 exports.signup = async (req, res) => {
-  const { email, password, role,phone_no} = req.body;
+  const {first_name,last_name, email, password, role,phone_no,country} = req.body;
   // profileData will include specific fields like estimated_guests for hosts or category for vendors
 
   try {
@@ -36,6 +36,9 @@ exports.signup = async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new UserModel({
+      first_name,
+      last_name,
+      country,
       email,
       password: hashedPassword,
       phone_no,
