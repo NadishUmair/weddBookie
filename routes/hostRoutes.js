@@ -15,7 +15,7 @@ router.route("/create-profile/:id").post(hostAuthentication,HostCreateProfile);
 router.route("/update-profile/:id").put(hostAuthentication,HostUpdateProfile);
 router.route("/profile/:id").get(hostAuthentication,HostProfile);
 router.route("/venue-booking/:id").post(hostAuthentication,CreateVenueBooking);
-router.route("/service-booking/:id").post(hostAuthentication,CreateServiceBooking);
+router.route("/vendor-booking/:id").post(hostAuthentication,CreateServiceBooking);
 router.route("/cancel-booking/:id").put(hostAuthentication,CancelBooking);
 router.route("/book-service/:id").post(hostAuthentication,BuyService);
 router.route("/single-vendor/:id").get(hostAuthentication,SingleVendor);

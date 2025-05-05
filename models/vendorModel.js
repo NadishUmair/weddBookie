@@ -59,7 +59,7 @@ const VendorSchema = new Schema(
     },
 
     timings_venue: {
-      type: Map,
+      type: Object,
       of: new Schema(
         {
           morning: {

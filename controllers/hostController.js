@@ -15,11 +15,16 @@ const {
   forgetPasswordTempalate,
   resetPasswordTemplate,
   updatePasswordTemplate,
+  hostBookingCancelTemplate,
+  vendorBookingCancelTemplate,
+  vendorBookingTemplates,
+  hostBookingTemplates,
 } = require("../utils/emailTemplates");
 const { getUTCFromLocal } = require("../utils/timeZone");
 const VendorModel = require("../models/vendorModel");
 const PackageModel = require("../models/packageModel");
 const ReviewModel = require("../models/reviewsModel");
+const { formatSlotTime } = require("../utils/bookingTime");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const generateOtp = () => {
@@ -516,134 +521,7 @@ exports.HostUpdateProfile = async (req, res) => {
 //   }
 // };
 
-// exports.CreateVenueBooking = async (req, res) => {
-//   try {
-//     const hostId = req.params.id;
-//     const host = await HostModel.findById(hostId);
-//     if (!host || host.role !== "host") {
-//       return res
-//         .status(403)
-//         .json({ message: "Only hosts can create bookings." });
-//     }
 
-//     const {
-//       packageId,
-//       vendorId,
-//       event_date,
-//       time_slot,
-//       timezone,
-//       guests,
-//       services,
-//     } = req.body;
-//     if (!event_date || !timezone || !time_slot) {
-//       return res.status(400).json({
-//         message:
-//           "event_date, timezone, and time_slot are required for venue bookings.",
-//       });
-//     }
-
-//     let selectedPackage = null;
-//     let vendor = null;
-//     if (packageId) {
-//       selectedPackage = await PackageModel.findById(packageId);
-//       if (!selectedPackage)
-//         return res.status(404).json({ message: "Package not found." });
-//       vendor = await VendorModel.findById(selectedPackage.vendor).select(
-//         "category services bookings company_name email first_name"
-//       );
-//     } else {
-//       if (!vendorId) {
-//         return res
-//           .status(400)
-//           .json({ message: "vendorId is required if no package is selected." });
-//       }
-//       vendor = await VendorModel.findById(vendorId).select(
-//         "category services bookings company_name email first_name"
-//       );
-//     }
-
-//     if (!vendor || vendor.category !== "venue") {
-//       return res.status(400).json({ message: "Invalid or non-venue vendor." });
-//     }
-
-//     const { utcMoment, error } = getUTCFromLocal(
-//       event_date,
-//       time_slot,
-//       timezone
-//     );
-//     if (error) return res.status(400).json({ message: error });
-
-//     const existingBooking = await BookingModel.findOne({
-//       vendor: vendor._id,
-//       event_date: utcMoment,
-//       time_slot,
-//       status: { $ne: "rejected" },
-//     });
-
-//     if (existingBooking) {
-//       return res
-//         .status(409)
-//         .json({ message: "Venue already booked for this time slot." });
-//     }
-
-//     let selectedExtras = [];
-//     if (services?.length) {
-//       selectedExtras = services.map((id) => {
-//         const service = vendor.services.find((s) => s._id.toString() === id);
-//         if (!service) throw new Error("Invalid extra service selected");
-//         return { name: service.name, price: service.price };
-//       });
-//     }
-
-//     const booking = new BookingModel({
-//       host: hostId,
-//       vendor: vendor._id,
-//       venue: vendor._id,
-//       package: selectedPackage?._id || null,
-//       event_date: utcMoment,
-//       time_slot,
-//       guests,
-//       timezone,
-//       extra_services: selectedExtras,
-//     });
-
-//     await booking.save();
-//     vendor.bookings.push(booking._id);
-//     await vendor.save();
-//     const formattedTime =
-//       vendor.category === "venue"
-//         ? moment
-//             .utc(utcMoment)
-//             .tz(timezone)
-//             .format("dddd, MMMM Do YYYY, h:mm A")
-//         : `${moment.utc(utcStartTime).tz(timezone).format("h:mm A")} to ${moment
-//             .utc(utcEndTime)
-//             .tz(timezone)
-//             .format("h:mm A")} on ${moment
-//             .utc(utcStartTime)
-//             .tz(timezone)
-//             .format("dddd, MMMM Do YYYY")}`;
-
-//     const hostEmail = hostBookingTemplate(
-//       host.first_name,
-//       vendor.company_name,
-//       formattedTime
-//     );
-//     const vendorEmail = vendorBookingTemplate(
-//       vendor.first_name,
-//       vendor.company_name,
-//       formattedTime,
-//       host.first_name
-//     );
-
-//     await SendEmail(res, host.email, hostEmail);
-//     await SendEmail(res, vendor.email, vendorEmail);
-//     return res.status(201).json({ message: "Venue booking created.", booking });
-//   } catch (err) {
-//     console.error("Venue Booking Error:", err);
-//     return res.status(500).json({ message: "Something went wrong." });
-//   }
-// };
 
 exports.CreateVenueBooking = async (req, res) => {
   try {
@@ -660,8 +538,11 @@ exports.CreateVenueBooking = async (req, res) => {
       time_slot,
       timezone,
       guests,
-      services,
+      extra_services,
     } = req.body;
+ 
+
+
 
     if (!event_date || !timezone || !time_slot) {
       return res.status(400).json({
@@ -694,35 +575,25 @@ exports.CreateVenueBooking = async (req, res) => {
       return res.status(400).json({ message: "Invalid or non-venue vendor." });
     }
 
-    // Convert to UTC moment first
+    // Convert to UTC
     const { utcMoment, error } = getUTCFromLocal(event_date, time_slot, timezone);
     if (error) return res.status(400).json({ message: error });
 
-    // Validate date and time slot availability
     const localDate = moment.tz(event_date, timezone).format("YYYY-MM-DD");
     const dayOfWeek = moment.tz(event_date, timezone).format("dddd").toLowerCase();
 
-    // 1. Check if the selected date is unavailable
+    // Check if date is unavailable
     if (vendor.unavailable_dates.includes(localDate)) {
-      return res.status(400).json({
-        message: "The venue is unavailable on the selected date.",
-      });
+      return res.status(400).json({ message: "The venue is unavailable on the selected date." });
     }
 
-    // 2. Check if the time slot is available for that day
-    const dayTimings = vendor.timings_venue?.get(dayOfWeek);
-
-    if (!dayTimings || !dayTimings[time_slot]) {
-      return res.status(400).json({
-        message: `The vendor does not offer bookings on ${dayOfWeek} for the ${time_slot} slot.`,
-      });
+    const dayTimings = vendor.timings_venue?.[dayOfWeek];
+    if (!dayTimings || !dayTimings[time_slot] || dayTimings[time_slot].status !== "active") {
+      return res.status(400).json({ message: `The selected time slot (${time_slot}) is not available on ${dayOfWeek}.` });
     }
 
-    if (dayTimings[time_slot].status !== "active") {
-      return res.status(400).json({
-        message: `The selected time slot (${time_slot}) is not available on ${dayOfWeek}.`,
-      });
-    }
+    const slotTiming = dayTimings[time_slot];
+    const { formatted, start_time, end_time } = formatSlotTime(slotTiming, localDate, time_slot, timezone);
 
     // Check for overlapping bookings
     const existingBooking = await BookingModel.findOne({
@@ -736,17 +607,15 @@ exports.CreateVenueBooking = async (req, res) => {
       return res.status(409).json({ message: "Venue already booked for this time slot." });
     }
 
-    // Handle extra services
     let selectedExtras = [];
-    if (services?.length) {
-      selectedExtras = services.map((id) => {
+    if ( extra_services?.length) {
+      selectedExtras =  extra_services.map((id) => {
         const service = vendor.services.find((s) => s._id.toString() === id);
         if (!service) throw new Error("Invalid extra service selected");
         return { name: service.name, price: service.price };
       });
     }
 
-    // Create booking
     const booking = new BookingModel({
       host: hostId,
       vendor: vendor._id,
@@ -754,8 +623,10 @@ exports.CreateVenueBooking = async (req, res) => {
       package: selectedPackage?._id || null,
       event_date: utcMoment,
       time_slot,
-      guests,
       timezone,
+      guests,
+      start_time,
+      end_time,
       extra_services: selectedExtras,
     });
 
@@ -763,23 +634,17 @@ exports.CreateVenueBooking = async (req, res) => {
     vendor.bookings.push(booking._id);
     await vendor.save();
 
-    // 📩 Format time slot with range for email
-    const slotTiming = vendor.timings_venue.get(dayOfWeek)[time_slot];
-    const slotStart = moment.tz(`${localDate} ${slotTiming.start}`, "YYYY-MM-DD HH:mm", timezone);
-    const slotEnd = moment.tz(`${localDate} ${slotTiming.end}`, "YYYY-MM-DD HH:mm", timezone);
-
-    const formattedTime = `${time_slot.charAt(0).toUpperCase() + time_slot.slice(1)} slot: ${slotStart.format("h:mm A")} to ${slotEnd.format("h:mm A")} on ${slotStart.format("dddd, MMMM Do YYYY")}`;
-
-    // ✉️ Send Emails
-    const hostEmail = hostBookingTemplate(
+    // Send Emails
+    const hostEmail = hostBookingTemplates(
       host.first_name,
       vendor.company_name,
-      formattedTime
+      formatted
     );
-    const vendorEmail = vendorBookingTemplate(
+
+    const vendorEmail = vendorBookingTemplates(
       vendor.first_name,
       vendor.company_name,
-      formattedTime,
+      formatted,
       host.first_name
     );
 
@@ -929,7 +794,7 @@ exports.CreateServiceBooking = async (req, res) => {
       start_time,
       end_time,
       timezone,
-      guests,
+      extra_services
     } = req.body;
 
     if (!event_date || !timezone || !start_time || !end_time || !packageId) {
@@ -979,8 +844,8 @@ exports.CreateServiceBooking = async (req, res) => {
     }
 
     const requestedSlot = {
-      start: localStart.format("HH:mm"),
-      end: localEnd.format("HH:mm"),
+      start: localStart.format("hh:mm A"),
+      end: localEnd.format("hh:mm A"),
     };
 
     const slotExists = slotsForDay.some(
@@ -1008,7 +873,14 @@ exports.CreateServiceBooking = async (req, res) => {
         message: "Vendor already booked for this time range.",
       });
     }
-
+    let selectedExtras = [];
+    if ( extra_services?.length) {
+      selectedExtras =  extra_services.map((id) => {
+        const service = vendor.services.find((s) => s._id.toString() === id);
+        if (!service) throw new Error("Invalid extra service selected");
+        return { name: service.name, price: service.price };
+      });
+    }
     const booking = new BookingModel({
       host: hostId,
       vendor: vendor._id,
@@ -1018,7 +890,9 @@ exports.CreateServiceBooking = async (req, res) => {
       end_time: utcEnd,
       guests,
       timezone,
+      extra_services: selectedExtras
     });
+
 
     await booking.save();
     vendor.bookings.push(booking._id);
@@ -1416,40 +1290,57 @@ exports.GiveReview = async (req, res) => {
 
 
 //!_________________________ Cancel Booking _____________________________!
-exports.CancelBooking=async(req,res)=>{
+exports.CancelBooking = async (req, res) => {
   try {
-         const hostId=req.params.id;
-         const {bookingId}=req.body;
-         const host=await HostModel.findById(hostId);
-        if(!host){
-          return res.status(404).json({message:"host not found"})
-        }
-         const booking=await BookingModel.findById(bookingId).populate([
-          {
-            path: 'package',
-            populate: { path: 'vendor' },
-          },
-         ]);
-         if(!booking){
-          return res.status(404).json({message:"booking not found"});
-         }
-         booking.status="cancelled";
-         await booking.save();
-         const hostBookingTemp=hostBookingTemplate(
-          host.first_name,
-          vendor.company_name,
-         );
-         const vendorBookingTemp=vendorBookingTemplate(
-          booking.vendor.first_name,
-          booking.vendor.company_name,
-          formattedTime,
-          host.first_name
-         )
-         await SendEmail(res, host.email, hostBookingTemp);
-         await SendEmail(res, booking.vendor.email, );
-         return res.status(200).json({message:"booking cancelled"})
+    const hostId = req.params.id;
+    const { bookingId } = req.body;
+
+    const host = await HostModel.findById(hostId);
+    if (!host) {
+      return res.status(404).json({ message: "Host not found." });
+    }
+
+    const booking = await BookingModel.findById(bookingId).populate([
+      { path: "package", select: "name" },
+      { path: "vendor", select: "first_name email company_name" }
+    ]);
+    
+   console.log("boking",booking);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    // Cancel the booking
+    booking.status = "cancelled";
+    await booking.save();
+
+    // Format times
+    const eventDateFormatted = moment(booking.event_date).tz(booking.timezone).format("YYYY-MM-DD");
+    const startTimeFormatted = moment(booking.start_time).tz(booking.timezone).format("hh:mm A");
+    const endTimeFormatted = moment(booking.end_time).tz(booking.timezone).format("hh:mm A");
+    const fullTimeSlot = `${eventDateFormatted} from ${startTimeFormatted} to ${endTimeFormatted} (${booking.timezone})`;
+
+    // Compose emails
+    const hostEmailBody = hostBookingCancelTemplate({
+      hostName: host.first_name,
+      serviceName: booking.vendor.company_name,
+      timeDetails: fullTimeSlot
+    });
+
+    const vendorEmailBody = vendorBookingCancelTemplate({
+      vendorName: booking.vendor.first_name,
+      vendorCompany: booking.vendor.company_name,
+      timeDetails: fullTimeSlot,
+      hostName: host.first_name
+    });
+   
+    await SendEmail(res, host.email, hostEmailBody);
+    await SendEmail(res, booking.vendor.email, vendorEmailBody);
+
+    return res.status(200).json({ message: "Booking cancelled successfully." });
+
   } catch (error) {
-    console.log("error",error);
-    return res.status(500).josn({message:"please try again.Later"})
+    console.error("Cancel Booking Error:", error);
+    return res.status(500).json({ message: "Please try again later." });
   }
-}
+};

@@ -5,9 +5,16 @@ const validateTimings = require("../utils/venueUtils");
 const ServicesModel = require("../models/serviceModel");
 const BookingModel = require("../models/bookingModel");
 const PackageModel = require("../models/packageModel");
-const { signupOtpTemplate, forgetPasswordTempalate, resetPasswordTemplate, updatePasswordTemplate } = require("../utils/emailTemplates");
+const {
+  signupOtpTemplate,
+  forgetPasswordTempalate,
+  resetPasswordTemplate,
+  updatePasswordTemplate,
+} = require("../utils/emailTemplates");
 const SendEmail = require("../utils/nodemailer");
 const generateServiceSlots = require("../helper/generateSlots");
+const CleanTimingsVenue = require("../utils/cleanTimingVenue");
+const cleanTimingsVenue = require("../utils/cleanTimingVenue");
 
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000);
@@ -26,7 +33,7 @@ exports.VendorSignup = async (req, res) => {
     city,
     password,
     business_registration,
-    business_license_number
+    business_license_number,
   } = req.body;
 
   try {
@@ -44,18 +51,23 @@ exports.VendorSignup = async (req, res) => {
     const emailToLowerCase = email.toLowerCase();
     const existingUser = await VendorModel.findOne({ email: emailToLowerCase });
     if (existingUser) {
-      return res.status(409).json({ message: "Email already exists. Please use another." });
+      return res
+        .status(409)
+        .json({ message: "Email already exists. Please use another." });
     }
 
     const existPhoneNo = await VendorModel.findOne({ phone_no });
     if (existPhoneNo) {
-      return res.status(409).json({ message: "Phone number already exists. Please use another." });
+      return res
+        .status(409)
+        .json({ message: "Phone number already exists. Please use another." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ➕ Automatically determine vendor_type based on category
-    const vendor_type = category.toLowerCase() === "venue" ? "venue" : "service";
+    const vendor_type =
+      category.toLowerCase() === "venue" ? "venue" : "service";
 
     const newUser = new VendorModel({
       first_name,
@@ -81,13 +93,11 @@ exports.VendorSignup = async (req, res) => {
     await SendEmail(res, email, emailTemplate);
 
     res.status(201).json({ message: "User created successfully" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error creating user" });
   }
 };
-
 
 //!________________ Verify Singup _____________________!
 exports.verifySignup = async (req, res) => {
@@ -122,11 +132,13 @@ exports.VendorLogin = async (req, res) => {
     if (!isNaN(auth)) {
       // It's a phone number (convert to number)
       query = { phone_no: Number(auth) };
-    } else if (auth.includes('@')) {
+    } else if (auth.includes("@")) {
       // It's an email
       query = { email: auth.toLowerCase() };
     } else {
-      return res.status(400).json({ message: "Invalid email or phone number format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid email or phone number format" });
     }
 
     const user = await VendorModel.findOne(query);
@@ -138,7 +150,7 @@ exports.VendorLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
 
     // Fetch user profile
- 
+
     // Generate JWT token
     const accessToken = jwt.sign(
       { userId: user._id, role: user.role },
@@ -149,7 +161,7 @@ exports.VendorLogin = async (req, res) => {
     res.status(200).json({
       message: "Logged in successfully",
       accessToken,
-      user
+      user,
     });
   } catch (err) {
     console.error("Login Error:", err);
@@ -157,10 +169,9 @@ exports.VendorLogin = async (req, res) => {
   }
 };
 
-
 //!___________ Update Vendor Profile __________________________!
 // exports.UpdateVendorProfile = async (req, res) => {
-//   const vendorId = req.params.id; 
+//   const vendorId = req.params.id;
 //   const {
 //     company_name,
 //     business_desc,
@@ -214,7 +225,6 @@ exports.VendorLogin = async (req, res) => {
 // };
 
 // controllers/vendorController.js
-
 
 // exports.UpdateVendorProfile = async (req, res) => {
 //   const vendorId = req.params.id;
@@ -288,7 +298,7 @@ exports.VendorLogin = async (req, res) => {
 exports.UpdateVendorProfile = async (req, res) => {
   const vendorId = req.params.id;
   const vendor = await VendorModel.findById(vendorId);
-  
+
   if (!vendor) {
     return res.status(404).json({ message: "Vendor not found" });
   }
@@ -306,9 +316,10 @@ exports.UpdateVendorProfile = async (req, res) => {
     services,
     addi_services,
     vendor_type,
-    slot_duration, // New field for slot duration
+    slot_duration,
     unavailable_dates,
-    working_hours, // Working hours for the week (start time and end time)
+    working_hours,
+    timings_venue,
   } = req.body;
 
   try {
@@ -327,7 +338,8 @@ exports.UpdateVendorProfile = async (req, res) => {
       vendor_type,
       unavailable_dates,
       slot_duration,
-      working_hours
+      working_hours,
+      timings_venue: cleanTimingsVenue(timings_venue),
     };
 
     if (vendor_type === "service") {
@@ -357,8 +369,6 @@ exports.UpdateVendorProfile = async (req, res) => {
   }
 };
 
-
-
 //!________________ Vendor forget Password ___________________________!
 exports.VendorForgetPassword = async (req, res) => {
   const { auth } = req.body;
@@ -369,11 +379,13 @@ exports.VendorForgetPassword = async (req, res) => {
     if (!isNaN(auth)) {
       // It's a phone number (convert to number)
       query = { phone_no: Number(auth) };
-    } else if (auth.includes('@')) {
+    } else if (auth.includes("@")) {
       // It's an email
       query = { email: auth.toLowerCase() };
     } else {
-      return res.status(400).json({ message: "Invalid email or phone number format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid email or phone number format" });
     }
 
     const user = await VendorModel.findOne(query);
@@ -381,21 +393,24 @@ exports.VendorForgetPassword = async (req, res) => {
     const otp = generateOtp();
     user.otp = otp;
     await user.save();
-    const vendorForgetPasstoken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const vendorForgetPasstoken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
 
-    const forgetPassTem= forgetPasswordTempalate(user.first_name,otp)
-    await SendEmail(res, user.email,forgetPassTem);
+    const forgetPassTem = forgetPasswordTempalate(user.first_name, otp);
+    await SendEmail(res, user.email, forgetPassTem);
     res
       .status(200)
       .json({ message: "otp sent to your email", vendorForgetPasstoken, otp });
   } catch (error) {
-    console.log("error",error);
+    console.log("error", error);
     res.status(500).json({ message: "please try again.Later" });
   }
 };
-
 
 // !________________________Verify Otp ___________________________!
 exports.VendorVerifyOtp = async (req, res) => {
@@ -437,49 +452,46 @@ exports.VendorResetPassword = async (req, res) => {
     }
     const hashPassword = await bcrypt.hash(password, 10);
     user.password = hashPassword;
-    user.otp=null;
+    user.otp = null;
     await user.save();
-    const resetPassTemp=resetPasswordTemplate(user?.first_name)
-    await SendEmail(res,user.email,resetPassTemp);
+    const resetPassTemp = resetPasswordTemplate(user?.first_name);
+    await SendEmail(res, user.email, resetPassTemp);
     res.status(200).json({ message: "password changed successfully" });
   } catch (error) {
-    console.log("eror",error);
+    console.log("eror", error);
     return res.status(500).json({ message: "try again.Later" });
   }
 };
 
-
 //!______________ Vendor Update Password __________________________!
-exports.VendorUpdatePassword=async(req,res)=>{
-    try { 
-           const id=req.params.id;
-           const {currentPassword,newPassword}=req.body;
-           const user=await VendorModel.findById(id);
-           if(!user){
-            return res.status(404).json({message:"user not exsit"});
-           }
-           const matchPassword=await bcrypt.compare(currentPassword,user.password);
-           if(!matchPassword){
-            return res.status(404).json({message:"current password not matched"});
-           }
-           if (newPassword.length < 8 || !/[A-Z]/.test(newPassword)) {
-            return res.status(400).json({
-              error:
-                "Password should be at least 8 characters long and contain at least one uppercase letter",
-            });
-          }
-          const hashPassword=await bcrypt.hash(newPassword,10);
-          user.password=hashPassword;
-          await user.save();
-         const updatePassTemp=updatePasswordTemplate(user.first_name);
-          await SendEmail(res,user.email,updatePassTemp);
-          res.status(200).json({message:"password updated Successfully"});
-    } catch (error) {
-      res.status(200).json({message:"password updated Successfully"});   
+exports.VendorUpdatePassword = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { currentPassword, newPassword } = req.body;
+    const user = await VendorModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "user not exsit" });
     }
-}
-
-
+    const matchPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!matchPassword) {
+      return res.status(404).json({ message: "current password not matched" });
+    }
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({
+        error:
+          "Password should be at least 8 characters long and contain at least one uppercase letter",
+      });
+    }
+    const hashPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashPassword;
+    await user.save();
+    const updatePassTemp = updatePasswordTemplate(user.first_name);
+    await SendEmail(res, user.email, updatePassTemp);
+    res.status(200).json({ message: "password updated Successfully" });
+  } catch (error) {
+    res.status(200).json({ message: "password updated Successfully" });
+  }
+};
 
 //!_________________ Vendor Create Service _________________!
 exports.CreateService = async (req, res) => {
@@ -488,7 +500,9 @@ exports.CreateService = async (req, res) => {
     const user = await VendorModel.findById(userId);
 
     if (!user || user.role !== "vendor") {
-      return res.status(403).json({ message: "Unauthorized or user not found." });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized or user not found." });
     }
 
     const { name, description, price, category } = req.body;
@@ -515,36 +529,36 @@ exports.CreateService = async (req, res) => {
   }
 };
 //!_________________ Update Service _____________________!
-exports.UpdateService=async(req,res)=>{
+exports.UpdateService = async (req, res) => {
   try {
-      
-      const {serviceId,title,price,description,category}=req.body;
-      const userId = req.params.id;
-      const user = await VendorModel.findById(userId);
-  
-      if (!user || user.role !== "vendor") {
-        return res.status(403).json({ message: "Unauthorized or user not found." });
-      }
-        const service=await ServicesModel.findById(serviceId);
-        if(!service){
-          return res.status(404).json({message:"service not exist"});
-        }
-        console.log("user",service.vendor);
-        if(service.vendor.toString() !== user._id.toString()){
-          return res.status(401).json({message:"not authorized to update"});
-        }
-       service.title=title
-       service.description=description
-       service.category=category
-       service.price=price
-       await service.save();
-       res.status(200).json({message:"service updated"})
-      
+    const { serviceId, title, price, description, category } = req.body;
+    const userId = req.params.id;
+    const user = await VendorModel.findById(userId);
+
+    if (!user || user.role !== "vendor") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized or user not found." });
+    }
+    const service = await ServicesModel.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: "service not exist" });
+    }
+    console.log("user", service.vendor);
+    if (service.vendor.toString() !== user._id.toString()) {
+      return res.status(401).json({ message: "not authorized to update" });
+    }
+    service.title = title;
+    service.description = description;
+    service.category = category;
+    service.price = price;
+    await service.save();
+    res.status(200).json({ message: "service updated" });
   } catch (error) {
-    console.log("error",error);
-    return res.status(500).json({message:"please try again.Later"})
+    console.log("error", error);
+    return res.status(500).json({ message: "please try again.Later" });
   }
-}
+};
 
 //!_________________ Delete Service ___________________________!
 exports.DeleteService = async (req, res) => {
@@ -552,95 +566,97 @@ exports.DeleteService = async (req, res) => {
     const vendorId = req.params.id;
     const { serviceId } = req.body;
 
-    const service = await ServicesModel.findOne({ _id: serviceId, vendor: vendorId });
+    const service = await ServicesModel.findOne({
+      _id: serviceId,
+      vendor: vendorId,
+    });
 
     if (!service) {
-      return res.status(404).json({ message: 'Service not found for this vendor' });
+      return res
+        .status(404)
+        .json({ message: "Service not found for this vendor" });
     }
     await ServicesModel.findByIdAndDelete(serviceId);
     await VendorModel.findByIdAndUpdate(vendorId, {
-      $pull: { services: serviceId }
+      $pull: { services: serviceId },
     });
-    return res.status(200).json({ message: 'Service deleted successfully' });
+    return res.status(200).json({ message: "Service deleted successfully" });
   } catch (error) {
-    console.error('DeleteService Error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error("DeleteService Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 //!______________________ my bookings (vendor) _____________________!
-exports.GetVendorBookings=async(req,res)=>{
+exports.GetVendorBookings = async (req, res) => {
   try {
-        const vendorId=req.params.id;
-        const bookings = await BookingModel.find({ vendor: vendorId })
-        .populate({
-          path: "host",
-          select: "-password", // Exclude host password
-        });
-          if(!bookings){
-            return res.status(404).json({message:"bookings not exist"});
-          };
-          return res.status(200).json({message:"bookings found",bookings})
+    const vendorId = req.params.id;
+    const bookings = await BookingModel.find({ vendor: vendorId }).populate({
+      path: "host",
+      select: "-password", // Exclude host password
+    });
+    if (!bookings) {
+      return res.status(404).json({ message: "bookings not exist" });
+    }
+    return res.status(200).json({ message: "bookings found", bookings });
   } catch (error) {
-    console.log("error",error);
-    return res.status(500).json({message:"please try again.Later"})
+    console.log("error", error);
+    return res.status(500).json({ message: "please try again.Later" });
   }
-}
-
+};
 
 //!___________________ My single booking (vendor) ___________________!
-exports.VendorSingleBooking=async(req,res)=>{
+exports.VendorSingleBooking = async (req, res) => {
   try {
-         const bookingId=req.params.id;
-         const booking=await BookingModel.findById(bookingId)   .populate({
-          path: "host",
-          select: "-password", // Exclude host password
-        });
-         if(!booking){
-          return res.status(404).json({message:"booking not found"});
-         }
-       return res.status(200).json({message:"booking found",booking})
+    const bookingId = req.params.id;
+    const booking = await BookingModel.findById(bookingId).populate({
+      path: "host",
+      select: "-password", // Exclude host password
+    });
+    if (!booking) {
+      return res.status(404).json({ message: "booking not found" });
+    }
+    return res.status(200).json({ message: "booking found", booking });
   } catch (error) {
-    console.log("error",error);
-    return res.status(500).json({message:"please try again.Later"})
+    console.log("error", error);
+    return res.status(500).json({ message: "please try again.Later" });
   }
-}
-
+};
 
 //!___________________ Create Package _____________________!
-exports.CreatePackage=async(req,res)=>{
+exports.CreatePackage = async (req, res) => {
   try {
-       const userId=req.params.id;
-       const {name,price,discount,description,features,is_popular}=req.body;
-       const vendor=await VendorModel.findById(userId);
-       if(!vendor){
-        return res.status(404).json({message:"vendor not found"})
-       }
-       const newPackage=new PackageModel({
-        vendor:vendor._id,
-        name,
-        price,
-        discount,
-        description,
-        features,
-        is_popular: is_popular ?? true,
-       })
-       await newPackage.save();
-       vendor.packages.push(newPackage._id);
-       await vendor.save();
-       return res.status(200).json({message:"package created",newPackage})
+    const userId = req.params.id;
+    const { name, price, discount, description, features, is_popular } =
+      req.body;
+    const vendor = await VendorModel.findById(userId);
+    if (!vendor) {
+      return res.status(404).json({ message: "vendor not found" });
+    }
+    const newPackage = new PackageModel({
+      vendor: vendor._id,
+      name,
+      price,
+      discount,
+      description,
+      features,
+      is_popular: is_popular ?? true,
+    });
+    await newPackage.save();
+    vendor.packages.push(newPackage._id);
+    await vendor.save();
+    return res.status(200).json({ message: "package created", newPackage });
   } catch (error) {
-    console.log("error",error);
-  return res.status(500).json({message:"please try again.Later"})
+    console.log("error", error);
+    return res.status(500).json({ message: "please try again.Later" });
   }
-}
+};
 
 //!_______________ Get all packages _______________________!
 exports.GetAllPackages = async (req, res) => {
   try {
     const userId = req.params.id;
-    const vendor = await VendorModel.findById(userId).populate('packages');
+    const vendor = await VendorModel.findById(userId).populate("packages");
     if (!vendor) {
       return res.status(404).json({ message: "Vendor not found" });
     }
@@ -651,12 +667,11 @@ exports.GetAllPackages = async (req, res) => {
   }
 };
 
-
 //!____________ Update Package ___________________________!
 exports.UpdatePackage = async (req, res) => {
   try {
     const userId = req.params.id;
-    const {packageId,...updateData} = req.body;
+    const { packageId, ...updateData } = req.body;
 
     const updatedPackage = await PackageModel.findByIdAndUpdate(
       packageId,
@@ -678,7 +693,7 @@ exports.UpdatePackage = async (req, res) => {
 //!_____________________ Delete Package ___________________!
 exports.DeletePackage = async (req, res) => {
   try {
-    const vendorId=req.params.id;
+    const vendorId = req.params.id;
     const { packageId } = req.body;
 
     const deletedPackage = await PackageModel.findByIdAndDelete(packageId);
@@ -697,6 +712,3 @@ exports.DeletePackage = async (req, res) => {
     return res.status(500).json({ message: "Please try again later." });
   }
 };
-
-
-

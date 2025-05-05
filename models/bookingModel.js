@@ -13,53 +13,41 @@ const BookingSchema = new Schema(
       ref: "vendor",
       required: true,
     },
-    // Only required for venue booking
     venue: {
       type: Schema.Types.ObjectId,
-      ref: "venue",
-      default: null,
-    },
-    // Only required for service booking
-    service: {
-      type: Schema.Types.ObjectId,
-      ref: "service",
-      default: null,
-    },
-    event_date: {
-      type: Date,
-    },
-    timezone: {
-      type: String,
-    },
-    // Only relevant for venue bookings
-    time_slot: {
-      type: String,
-      enum: ["morning", "afternoon", "evening"],
-      default: null,
-    },
-    // Optional depending on booking type
-    guests: {
-      type: Number,
+      ref: "vendor", // typically same as vendor for venue-type
       default: null,
     },
     package: {
       type: Schema.Types.ObjectId,
       ref: "package",
+      default: null,
     },
-    // Optional, only for venue bookings with extra services
+    // Expanded service info for invoice or display
     extra_services: [
       {
-        name: { type: String },
-        price: { type: Number },
+        name: String,
+        price: Number,
       },
     ],
+    event_date: Date,
+    timezone: String,
+    time_slot: {
+      type: String,
+      enum: ["morning", "afternoon", "evening"],
+      default: null,
+    },
+    guests: {
+      type: Number,
+      default: null,
+    },
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected","cancelled"],
+      enum: ["pending", "accepted", "rejected", "cancelled"],
       default: "pending",
     },
-    start_time: { type: Date },
-    end_time: { type: Date },
+    start_time: Date,
+    end_time: Date,
     payment_status: {
       type: String,
       enum: ["unpaid", "paid", "refunded"],
