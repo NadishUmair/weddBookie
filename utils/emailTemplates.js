@@ -98,60 +98,67 @@ exports.updatePasswordTemplate = (first_name) => {
   };
 };
 
-//   booking tempalate for host
-exports.hostBookingTemplates = (firstName, serviceName, bookingTime) => {
+//booking tempalate for host
+exports.hostBookingTemplate = (firstName, serviceName, bookingTime, status = 'confirmed') => {
+  const isCancelled = status === 'cancelled';
+  
   return {
-    subject: `Your ${serviceName} Booking is Confirmed! 🎉`,
+    subject: `Your ${serviceName} Booking Has Been ${isCancelled ? 'Cancelled' : 'Confirmed'}${isCancelled ? '' : '! 🎉'}`,
     message: `Hi ${firstName},
-  
-  Thank you for booking the ${serviceName} with Wed Bookie!
-  
-       <p>
-          <strong>Booking Time:</strong>
-          <span style="background-color: #d4edda; color: #155724; padding: 5px 10px; border-radius: 4px; display: inline-block;">
-            ${bookingTime}
-          </span>
-        </p>
-  
-  We’re thrilled to be part of your special occasion. You can view all your bookings anytime in your dashboard.
-  
+
+  ${isCancelled
+    ? `We wanted to let you know that your booking for the ${serviceName} has been cancelled.`
+    : `Thank you for booking the ${serviceName} with Wed Bookie!`}
+
+    <p>
+      <strong>Booking Time:</strong>
+      <span style="background-color: ${isCancelled ? '#f8d7da' : '#d4edda'}; color: ${isCancelled ? '#721c24' : '#155724'}; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+        ${bookingTime}
+      </span>
+    </p>
+
+  ${isCancelled
+    ? `If this was a mistake or you wish to reschedule, you can make a new booking anytime from your dashboard.`
+    : `We’re thrilled to be part of your special occasion. You can view all your bookings anytime in your dashboard.`}
+
   If you have any questions or need assistance, feel free to reach out to our support team.
-  
-  We look forward to helping make your event amazing!
-  
+
   Cheers,  
   The Wed Bookie Team`,
   };
 };
 
-//  booking template for vendor
-exports.vendorBookingTemplates = (
-  vendorName,
-  venueName,
-  bookingTime,
-  hostName
-) => {
+
+// booking template for vendor
+exports.vendorBookingTemplate = (vendorName, venueName, bookingTime, hostName, status = 'confirmed') => {
+  const isCancelled = status === 'cancelled';
+
   return {
-    subject: `New Booking Request for ${venueName}!`,
+    subject: `Booking ${isCancelled ? 'Cancelled' : 'Request'} for ${venueName}${isCancelled ? '' : '!'}`,
     message: `Hi ${vendorName},
-  
-  You have received a new booking request for your venue, ${venueName}, from ${hostName}.
-  
+
+  ${isCancelled
+    ? `${hostName} has cancelled their booking for your venue, ${venueName}.`
+    : `You have received a new booking request for your venue, ${venueName}, from ${hostName}.`}
+
     <p>
-          <strong>Booking Time:</strong>
-          <span style="background-color: #d4edda; color: #155724; padding: 5px 10px; border-radius: 4px; display: inline-block;">
-            ${bookingTime}
-          </span>
-        </p>
-  
+      <strong>Booking Time:</strong>
+      <span style="background-color: ${isCancelled ? '#f8d7da' : '#d4edda'}; color: ${isCancelled ? '#721c24' : '#155724'}; padding: 5px 10px; border-radius: 4px; display: inline-block;">
+        ${bookingTime}
+      </span>
+    </p>
+
+  ${isCancelled
+    ? `The slot is now available for new bookings.`
+    : `We look forward to making this event successful!`}
+
   If you have any questions or need assistance, feel free to reach out to our support team.
-  
-  We look forward to making this event successful!
-  
+
   Cheers,  
   The Wed Bookie Team`,
   };
 };
+
 
 // Host Service Buying Template
 exports.hostServicePurchaseTemplate = (
@@ -162,28 +169,29 @@ exports.hostServicePurchaseTemplate = (
 ) => {
   return {
     subject: `Your Purchase of ${serviceName} is Confirmed! 🎉`,
-    message: `Hi ${firstName},
+    message: `Hi ${firstName},<br><br>
 
-Thank you for purchasing the ${serviceName} through Wed Bookie!
+Thank you for purchasing the <strong>${serviceName}</strong> through <strong>Wed Bookie</strong>!<br><br>
 
-**Purchase Details:**
-- **Service:** ${serviceName}
-- **Price:** $${servicePrice}
-- **Purchase Time:** ${purchaseTime}
+<strong>Purchase Details:</strong><br>
+- <strong>Service:</strong> ${serviceName}<br>
+- <strong>Price:</strong> $${servicePrice}<br>
+- <strong>Purchase Time:</strong> <span style="color: green;"><strong>${purchaseTime}</strong></span><br><br>
 
-We’re excited that you chose Wed Bookie for your event needs. All of your services and bookings are accessible from your dashboard, where you can keep track of upcoming events and services you've purchased.
+We’re excited that you chose Wed Bookie for your event needs. All of your services and bookings are accessible from your dashboard, where you can keep track of upcoming events and services you've purchased.<br><br>
 
-If you have any questions or need assistance, don't hesitate to reach out to our support team.
+If you have any questions or need assistance, don't hesitate to reach out to our support team.<br><br>
 
-We are looking forward to making your event an unforgettable experience!
+We are looking forward to making your event an unforgettable experience!<br><br>
 
-Cheers,  
-The Wed Bookie Team`,
+Cheers,<br>
+<strong>The Wed Bookie Team</strong>`
   };
 };
 
+
 // Vendor Service Booking Template
-exports. vendorServiceBookingTemplate = (
+exports.vendorServiceBookingTemplate = (
   firstName,
   serviceName,
   bookingTime,
@@ -192,30 +200,28 @@ exports. vendorServiceBookingTemplate = (
 ) => {
   return {
     subject: `You Have a New Booking for ${serviceName}! 🎉`,
-    message: `Hi ${firstName},
+    message: `Hi ${firstName},<br><br>
 
-Good news! You’ve received a new booking for your ${serviceName} service!
+Good news! You’ve received a new booking for your <strong>${serviceName}</strong> service!<br><br>
 
-**Booking Details:**
-- **Service:** ${serviceName}
-- **Price:** $${servicePrice}
-- **Booking Time:** ${bookingTime}
-- **Host Name:** ${hostName}
+<strong>Booking Details:</strong><br>
+- <strong>Service:</strong> ${serviceName}<br>
+- <strong>Price:</strong> $${servicePrice}<br>
+- <strong>Booking Time:</strong> <span style="color: green;"><strong>${bookingTime}</strong></span><br>
+- <strong>Host Name:</strong> ${hostName}<br><br>
 
-We are excited to help make this event a memorable one. Please ensure you prepare everything to provide the best experience for the host.
+We are excited to help make this event a memorable one. Please ensure you prepare everything to provide the best experience for the host.<br><br>
 
-You can view all your bookings anytime in your vendor dashboard.
+You can view all your bookings anytime in your vendor dashboard.<br><br>
 
-If you need any assistance or have questions, feel free to reach out to our support team. 
+If you need any assistance or have questions, feel free to reach out to our support team.<br><br>
 
-We look forward to helping you make this event amazing!
+We look forward to helping you make this event amazing!<br><br>
 
-Cheers,  
-The Wed Bookie Team`,
+Cheers,<br>
+<strong>The Wed Bookie Team</strong>`
   };
 };
-
-
 
 exports.adminTwoFactorCodeTemplate = (first_name, otp) => {
   return {

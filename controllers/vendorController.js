@@ -7,6 +7,7 @@ const BookingModel = require("../models/bookingModel");
 const PackageModel = require("../models/packageModel");
 const { signupOtpTemplate, forgetPasswordTempalate, resetPasswordTemplate, updatePasswordTemplate } = require("../utils/emailTemplates");
 const SendEmail = require("../utils/nodemailer");
+const generateServiceSlots = require("../helper/generateSlots");
 
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000);
@@ -27,7 +28,6 @@ exports.VendorSignup = async (req, res) => {
     business_registration,
     business_license_number
   } = req.body;
-  // profileData will include specific fields like estimated_guests for hosts or category for vendors
 
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,40 +40,54 @@ exports.VendorSignup = async (req, res) => {
           "Password should be at least 8 characters long and contain at least one uppercase letter",
       });
     }
-    const emailToLowerCase=email.toLowerCase();
+
+    const emailToLowerCase = email.toLowerCase();
     const existingUser = await VendorModel.findOne({ email: emailToLowerCase });
-    if (existingUser)
-      return res.status(409).json({ message: "email already exists please use another" });
-    const existPhoneNo=await VendorModel.findOne({phone_no});
-    if(existPhoneNo){
-    return res.status(409).json({message:"phone no already exist pleasse use another"})
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already exists. Please use another." });
     }
+
+    const existPhoneNo = await VendorModel.findOne({ phone_no });
+    if (existPhoneNo) {
+      return res.status(409).json({ message: "Phone number already exists. Please use another." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ➕ Automatically determine vendor_type based on category
+    const vendor_type = category.toLowerCase() === "venue" ? "venue" : "service";
+
     const newUser = new VendorModel({
       first_name,
       last_name,
       company_name,
       category,
       country,
-      email,
+      email: emailToLowerCase,
       phone_no,
       city,
-      password:hashedPassword,
+      password: hashedPassword,
       business_registration,
       business_license_number,
-      password:hashedPassword
+      vendor_type, // ✅ Set vendor_type here
     });
-      const otp=generateOtp();
-      newUser.otp=otp;
-      await newUser.save();
-      const emailTemplate = signupOtpTemplate(newUser.email, otp);
-      await SendEmail(res, email, emailTemplate);
+
+    const otp = generateOtp();
+    newUser.otp = otp;
+
+    await newUser.save();
+
+    const emailTemplate = signupOtpTemplate(newUser.email, otp);
+    await SendEmail(res, email, emailTemplate);
+
     res.status(201).json({ message: "User created successfully" });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error creating user" });
   }
 };
+
 
 //!________________ Verify Singup _____________________!
 exports.verifySignup = async (req, res) => {
@@ -145,8 +159,140 @@ exports.VendorLogin = async (req, res) => {
 
 
 //!___________ Update Vendor Profile __________________________!
+// exports.UpdateVendorProfile = async (req, res) => {
+//   const vendorId = req.params.id; 
+//   const {
+//     company_name,
+//     business_desc,
+//     country,
+//     city,
+//     website,
+//     social_links,
+//     images,
+//     faqs,
+//     postal_code,
+//     capacity,
+//     services,
+//     timings,
+//   } = req.body;
+
+//   try {
+//     const updatedVendor = await VendorModel.findByIdAndUpdate(
+//       vendorId,
+//       {
+//      $set: {
+//     company_name,
+//     business_desc,
+//     country,
+//     city,
+//     website,
+//     social_links,
+//     images,
+//     faqs,
+//     services,
+//     postal_code,
+//     capacity,
+//     services,
+//     timings,
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedVendor) {
+//       return res.status(404).json({ message: "Vendor not found" });
+//     }
+
+//     res.status(200).json({
+//       message: "Profile updated successfully",
+//       data: updatedVendor,
+//     });
+//   } catch (err) {
+//     console.error("Profile update error:", err);
+//     res.status(500).json({ message: "Server error while updating profile" });
+//   }
+// };
+
+// controllers/vendorController.js
+
+
+// exports.UpdateVendorProfile = async (req, res) => {
+//   const vendorId = req.params.id;
+//    const vendor =await  VendorModel.findById(vendorId);
+//    if(!vendor){
+//     return res.status(404).json({message:"vendor not fouund"})
+//    }
+//   const {
+//     company_name,
+//     business_desc,
+//     country,
+//     city,
+//     website,
+//     social_links,
+//     images,
+//     postal_code,
+//     capacity,
+//     services,
+//     addi_services,
+//     timings_venue,
+//     vendor_type,
+//     timings_service_weekly,
+//     unavailable_dates,
+//   } = req.body;
+
+//   try {
+//     let updateData = {
+//       company_name,
+//       business_desc,
+//       country,
+//       city,
+//       website,
+//       social_links,
+//       images,
+//       postal_code,
+//       capacity,
+//       services,
+//       addi_services,
+//       vendor_type,
+//       unavailable_dates,
+//     };
+
+//     if (vendor_type === "venue") {
+//       updateData.timings_venue = timings_venue;
+//       updateData.timings_service_weekly = undefined;
+//     } else if (vendor_type === "service") {
+//       updateData.timings_service_weekly = timings_service_weekly;
+//       updateData.timings_venue = undefined;
+//     }
+
+//     const updatedVendor = await VendorModel.findByIdAndUpdate(
+//       vendorId,
+//       { $set: updateData },
+//       { new: true }
+//     );
+
+//     if (!updatedVendor) {
+//       return res.status(404).json({ message: "Vendor not found" });
+//     }
+
+//     res.status(200).json({
+//       message: "Vendor profile updated successfully",
+//       data: updatedVendor,
+//     });
+//   } catch (error) {
+//     console.error("Error updating vendor:", error);
+//     res.status(500).json({ message: "Server error while updating vendor" });
+//   }
+// };
+
 exports.UpdateVendorProfile = async (req, res) => {
-  const vendorId = req.params.id; 
+  const vendorId = req.params.id;
+  const vendor = await VendorModel.findById(vendorId);
+  
+  if (!vendor) {
+    return res.status(404).json({ message: "Vendor not found" });
+  }
+
   const {
     company_name,
     business_desc,
@@ -155,34 +301,45 @@ exports.UpdateVendorProfile = async (req, res) => {
     website,
     social_links,
     images,
-    faqs,
-    services,
     postal_code,
     capacity,
-    extra_services,
-    timings,
+    services,
+    addi_services,
+    vendor_type,
+    slot_duration, // New field for slot duration
+    unavailable_dates,
+    working_hours, // Working hours for the week (start time and end time)
   } = req.body;
 
   try {
+    let updateData = {
+      company_name,
+      business_desc,
+      country,
+      city,
+      website,
+      social_links,
+      images,
+      postal_code,
+      capacity,
+      services,
+      addi_services,
+      vendor_type,
+      unavailable_dates,
+      slot_duration,
+      working_hours
+    };
+
+    if (vendor_type === "service") {
+      // Generate service slots based on working hours and slot duration
+      const generatedSlots = generateServiceSlots(working_hours, slot_duration);
+      updateData.timings_service_weekly = generatedSlots; // Save the generated slots
+    }
+
+    // Apply the update
     const updatedVendor = await VendorModel.findByIdAndUpdate(
       vendorId,
-      {
-        $set: {
-    company_name,
-    business_desc,
-    country,
-    city,
-    website,
-    social_links,
-    images,
-    faqs,
-    services,
-    postal_code,
-    capacity,
-    extra_services,
-    timings,
-        },
-      },
+      { $set: updateData },
       { new: true }
     );
 
@@ -191,12 +348,12 @@ exports.UpdateVendorProfile = async (req, res) => {
     }
 
     res.status(200).json({
-      message: "Profile updated successfully",
+      message: "Vendor profile updated successfully",
       data: updatedVendor,
     });
-  } catch (err) {
-    console.error("Profile update error:", err);
-    res.status(500).json({ message: "Server error while updating profile" });
+  } catch (error) {
+    console.error("Error updating vendor:", error);
+    res.status(500).json({ message: "Server error while updating vendor" });
   }
 };
 

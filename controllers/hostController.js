@@ -1,14 +1,14 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const moment = require("moment-timezone");
 const BookingModel = require("../models/bookingModel");
 const UserModel = require("../models/userModel");
 const ServicesModel = require("../models/serviceModel");
 const HostModel = require("../models/hostModel");
 const SendEmail = require("../utils/nodemailer");
+const moment = require("moment-timezone");
 const {
-  hostBookingTemplates,
-  vendorBookingTemplates,
+  hostBookingTemplate,
+  vendorBookingTemplate,
   hostServicePurchaseTemplate,
   vendorServiceBookingTemplate,
   signupOtpTemplate,
@@ -230,34 +230,34 @@ exports.HostResetPassword = async (req, res) => {
 };
 
 //!______________ Host Update Password __________________________!
-exports.HostUpdatePassword=async(req,res)=>{
-    try { 
-           const id=req.params.id;
-           const {currentPassword,newPassword}=req.body;
-           const user=await HostModel.findById(id);
-           if(!user){
-            return res.status(404).json({message:"user not exsit"});
-           }
-           const matchPassword=await bcrypt.compare(currentPassword,user.password);
-           if(!matchPassword){
-            return res.status(404).json({message:"current password not matched"});
-           }
-           if (newPassword.length < 8 || !/[A-Z]/.test(newPassword)) {
-            return res.status(400).json({
-              error:
-                "Password should be at least 8 characters long and contain at least one uppercase letter",
-            });
-          }
-          const hashPassword=await bcrypt.hash(newPassword,10);
-          user.password=hashPassword;
-          await user.save();
-         const updatePassTemp=updatePasswordTemplate(user.first_name);
-          await SendEmail(res,user.email,updatePassTemp);
-          res.status(200).json({message:"password updated Successfully"});
-    } catch (error) {
-      res.status(200).json({message:"password updated Successfully"});   
+exports.HostUpdatePassword = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { currentPassword, newPassword } = req.body;
+    const user = await HostModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "user not exsit" });
     }
-}
+    const matchPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!matchPassword) {
+      return res.status(404).json({ message: "current password not matched" });
+    }
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({
+        error:
+          "Password should be at least 8 characters long and contain at least one uppercase letter",
+      });
+    }
+    const hashPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashPassword;
+    await user.save();
+    const updatePassTemp = updatePasswordTemplate(user.first_name);
+    await SendEmail(res, user.email, updatePassTemp);
+    res.status(200).json({ message: "password updated Successfully" });
+  } catch (error) {
+    res.status(200).json({ message: "password updated Successfully" });
+  }
+};
 
 //!__________________ Profile Update __________________________!
 exports.HostCreateProfile = async (req, res) => {
@@ -369,101 +369,147 @@ exports.HostUpdateProfile = async (req, res) => {
 };
 
 //!_____________________ Book Venue __________________________________!
-// exports.CreateVenueBooking = async (req, res) => {
+
+// exports.CreateVendorBooking = async (req, res) => {
 //   try {
 //     const hostId = req.params.id;
 //     const host = await HostModel.findById(hostId);
-
 //     if (!host || host.role !== "host") {
 //       return res.status(403).json({ message: "Only hosts can create bookings." });
 //     }
 
 //     const {
-//       vendorId,            // ✅ corrected from venueId to vendorId
+//       packageId,
 //       event_date,
-//       time_slot,
+//       time_slot,         // still needed for venues
 //       guests,
-//       extra_services,
+//       services,
 //       timezone,
+//       start_time,        // for non-venue vendors
+//       end_time,          // for non-venue vendors
 //     } = req.body;
 
-//     if (!event_date || !time_slot || !timezone || !vendorId) {
-//       return res.status(400).json({
-//         message: "vendorId, event_date, time_slot, and timezone are required.",
+//     if (!event_date || !timezone || !packageId) {
+//       return res.status(400).json({ message: "packageId, event_date, and timezone are required." });
+//     }
+
+//     const selectedPackage = await PackageModel.findById(packageId);
+//     if (!selectedPackage) return res.status(404).json({ message: "Package not found" });
+
+//     const vendor = await VendorModel.findById(selectedPackage.vendor).select("category extra_services bookings company_name email first_name");
+
+//     if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+//     let utcStartTime = null;
+//     let utcEndTime = null;
+//     let utcMoment = null;
+
+//     // Handle venue vs non-venue
+//     if (vendor.category === "venue") {
+//       if (!time_slot) {
+//         return res.status(400).json({ message: "time_slot is required for venue bookings." });
+//       }
+
+//       const { utcMoment: venueUtcMoment, error } = getUTCFromLocal(event_date, time_slot, timezone);
+//       if (error) return res.status(400).json({ message: error });
+//       utcMoment = venueUtcMoment;
+
+//       // Check venue availability
+//       const existingBooking = await BookingModel.findOne({
+//         vendor: vendor._id,
+//         event_date: utcMoment,
+//         time_slot,
+//         status: { $ne: "rejected" },
 //       });
-//     }
 
-//     // Convert event date and time slot to UTC moment
-//     const { utcMoment, error } = getUTCFromLocal(event_date, time_slot, timezone);
-//     if (error) {
-//       return res.status(400).json({ message: error });
-//     }
+//       if (existingBooking) {
+//         return res.status(409).json({ message: "This venue is already booked for the selected date and time." });
+//       }
+//     } else {
+//       // Non-venue service: convert start and end time
+//       if (!start_time || !end_time) {
+//         return res.status(400).json({ message: "start_time and end_time are required for non-venue bookings." });
+//       }
 
-//     // Get vendor (venue) and check category
-//     const vendor = await VendorModel.findById(vendorId).select(
-//       "category extra_services bookings name email first_name"
-//     );
+//       const moment = require("moment-timezone");
+//       const localStart = moment.tz(`${event_date} ${start_time}`, "YYYY-MM-DD hh:mm A", timezone);
+//       const localEnd = moment.tz(`${event_date} ${end_time}`, "YYYY-MM-DD hh:mm A", timezone);
 
-//     if (!vendor || vendor.category !== "venue") {
-//       return res.status(404).json({ message: "Vendor not found or not a venue." });
-//     }
+//       if (!localStart.isValid() || !localEnd.isValid() || localEnd.isBefore(localStart)) {
+//         return res.status(400).json({ message: "Invalid start or end time." });
+//       }
 
-//     // Check if already booked
-//     const existingBooking = await BookingModel.findOne({
-//       vendor: vendorId,
-//       event_date: utcMoment,
-//       time_slot,
-//       status: { $ne: "rejected" },
-//     });
+//       utcStartTime = localStart.clone().utc();
+//       utcEndTime = localEnd.clone().utc();
 
-//     if (existingBooking) {
-//       return res.status(409).json({
-//         message: "This venue is already booked for the selected date and time.",
+//       // Optional: Check for overlapping bookings
+//       const overlapping = await BookingModel.findOne({
+//         vendor: vendor._id,
+//         event_date: { $eq: utcStartTime.clone().startOf("day") },
+//         $or: [
+//           {
+//             start_time: { $lt: utcEndTime },
+//             end_time: { $gt: utcStartTime },
+//           }
+//         ],
+//         status: { $ne: "rejected" },
 //       });
+
+//       if (overlapping) {
+//         return res.status(409).json({ message: "This vendor is already booked for the selected time range." });
+//       }
 //     }
 
 //     // Validate extra services
 //     let SelectedExtra = [];
-//     if (extra_services?.length) {
-//       SelectedExtra = extra_services.map((id) => {
-//         const service = vendor.extra_services.find((s) => s._id.toString() === id);
-//         if (!service) {
-//           throw new Error("Invalid extra service selected");
-//         }
+//     if (services?.length) {
+//       SelectedExtra = services.map((id) => {
+//         const service = vendor.services.find((s) => s._id.toString() === id);
+//         if (!service) throw new Error("Invalid extra service selected");
 //         return { name: service.name, price: service.price };
 //       });
 //     }
 
-//     // Create and save booking
+//     // Create booking
 //     const booking = new BookingModel({
 //       host: hostId,
-//       vendor: vendorId,
-//       venue: vendorId, // ✅ assuming vendor is also used as "venue"
-//       event_date: utcMoment,
-//       time_slot,
+//       vendor: vendor._id,
+//       venue: vendor.category === "venue" ? vendor._id : null,
+//       package: packageId,
+//       event_date: vendor.category === "venue" ? utcMoment : utcStartTime.clone().startOf("day"),
+//       time_slot: vendor.category === "venue" ? time_slot : null,
+//       start_time: vendor.category !== "venue" ? utcStartTime : null,
+//       end_time: vendor.category !== "venue" ? utcEndTime : null,
 //       guests,
-//       extra_services: SelectedExtra,
+//       services: SelectedExtra,
 //       timezone,
+//       duration: selectedPackage.duration,
 //     });
 
 //     await booking.save();
 
-//     // Add booking to vendor document
 //     vendor.bookings.push(booking._id);
 //     await vendor.save();
 
-//     // Send emails (host and vendor)
-//     const formattedDate = utcMoment.format("dddd, MMMM Do YYYY, h:mm A");
-//     const hostEmail = hostBookingTemplates(host.first_name, vendor.company_name, formattedDate);
-//     const vendorEmail = vendorBookingTemplates(vendor.first_name, vendor.company_name, formattedDate, host.first_name);
+//     // const formattedTime = vendor.category === "venue"
+//     //   ? utcMoment.format("dddd, MMMM Do YYYY, h:mm A")
+//     //   : `${utcStartTime.format("h:mm A")} to ${utcEndTime.format("h:mm A")} on ${utcStartTime.format("dddd, MMMM Do YYYY")}`;
+
+// const formattedTime = vendor.category === "venue"
+//   ? moment.utc(utcMoment).tz(timezone).format("dddd, MMMM Do YYYY, h:mm A")
+//   : `${moment.utc(utcStartTime).tz(timezone).format("h:mm A")} to ${moment.utc(utcEndTime).tz(timezone).format("h:mm A")} on ${moment.utc(utcStartTime).tz(timezone).format("dddd, MMMM Do YYYY")}`;
+
+//     const hostEmail = hostBookingTemplate(host.first_name, vendor.company_name, formattedTime);
+//     const vendorEmail = vendorBookingTemplate(vendor.first_name, vendor.company_name, formattedTime, host.first_name);
 
 //     await SendEmail(res, host.email, hostEmail);
 //     await SendEmail(res, vendor.email, vendorEmail);
 
-//     res.status(201).json({
+//     return res.status(201).json({
 //       message: "Booking request submitted. Awaiting vendor approval.",
 //       booking,
 //     });
+
 //   } catch (error) {
 //     console.error("Booking error:", error);
 //     return res.status(500).json({ message: "Something went wrong." });
@@ -481,18 +527,43 @@ exports.HostUpdateProfile = async (req, res) => {
 //     }
 
 //     const {
-//       packageId, // ✅ new field for package
+//       packageId,
+//       vendorId,
 //       event_date,
 //       time_slot,
-//       guests,
-//       extra_services,
 //       timezone,
+//       guests,
+//       services,
 //     } = req.body;
-
-//     if (!event_date || !time_slot || !timezone) {
+//     if (!event_date || !timezone || !time_slot) {
 //       return res.status(400).json({
-//         message: "vendorId, event_date, time_slot, and timezone are required.",
+//         message:
+//           "event_date, timezone, and time_slot are required for venue bookings.",
 //       });
+//     }
+
+//     let selectedPackage = null;
+//     let vendor = null;
+//     if (packageId) {
+//       selectedPackage = await PackageModel.findById(packageId);
+//       if (!selectedPackage)
+//         return res.status(404).json({ message: "Package not found." });
+//       vendor = await VendorModel.findById(selectedPackage.vendor).select(
+//         "category services bookings company_name email first_name"
+//       );
+//     } else {
+//       if (!vendorId) {
+//         return res
+//           .status(400)
+//           .json({ message: "vendorId is required if no package is selected." });
+//       }
+//       vendor = await VendorModel.findById(vendorId).select(
+//         "category services bookings company_name email first_name"
+//       );
+//     }
+
+//     if (!vendor || vendor.category !== "venue") {
+//       return res.status(400).json({ message: "Invalid or non-venue vendor." });
 //     }
 
 //     const { utcMoment, error } = getUTCFromLocal(
@@ -500,29 +571,7 @@ exports.HostUpdateProfile = async (req, res) => {
 //       time_slot,
 //       timezone
 //     );
-//     if (error) {
-//       return res.status(400).json({ message: error });
-//     }
-//     let selectedPackage = null;
-//     if (packageId) {
-//       selectedPackage = await PackageModel.findOne({
-//         _id: packageId,
-//       });
-
-//       if (!selectedPackage) {
-//         return res.status(404).json({ message: "Selected package not found" });
-//       }
-//     }
-
-//     const vendor = await VendorModel.findById(selectedPackage.vendor).select(
-//       "category extra_services bookings company_name email first_name"
-//     );
-
-//     if (!vendor || vendor.category !== "venue") {
-//       return res
-//         .status(404)
-//         .json({ message: "Vendor not found or not a venue." });
-//     }
+//     if (error) return res.status(400).json({ message: error });
 
 //     const existingBooking = await BookingModel.findOne({
 //       vendor: vendor._id,
@@ -532,38 +581,296 @@ exports.HostUpdateProfile = async (req, res) => {
 //     });
 
 //     if (existingBooking) {
-//       return res.status(409).json({
-//         message:
-//           "This vendor is already booked for the selected date and time.",
-//       });
+//       return res
+//         .status(409)
+//         .json({ message: "Venue already booked for this time slot." });
 //     }
 
-//     // ✅ Fetch package details if provided
-
-//     // Validate extra services
-//     let SelectedExtra = [];
-//     if (extra_services?.length) {
-//       SelectedExtra = extra_services.map((id) => {
-//         const service = vendor.extra_services.find(
-//           (s) => s._id.toString() === id
-//         );
-//         if (!service) {
-//           throw new Error("Invalid extra service selected");
-//         }
+//     let selectedExtras = [];
+//     if (services?.length) {
+//       selectedExtras = services.map((id) => {
+//         const service = vendor.services.find((s) => s._id.toString() === id);
+//         if (!service) throw new Error("Invalid extra service selected");
 //         return { name: service.name, price: service.price };
 //       });
 //     }
 
-//     // Create booking with package reference
 //     const booking = new BookingModel({
 //       host: hostId,
 //       vendor: vendor._id,
 //       venue: vendor._id,
-//       package: packageId,
+//       package: selectedPackage?._id || null,
 //       event_date: utcMoment,
 //       time_slot,
 //       guests,
-//       extra_services: SelectedExtra,
+//       timezone,
+//       extra_services: selectedExtras,
+//     });
+
+//     await booking.save();
+//     vendor.bookings.push(booking._id);
+//     await vendor.save();
+//     const formattedTime =
+//       vendor.category === "venue"
+//         ? moment
+//             .utc(utcMoment)
+//             .tz(timezone)
+//             .format("dddd, MMMM Do YYYY, h:mm A")
+//         : `${moment.utc(utcStartTime).tz(timezone).format("h:mm A")} to ${moment
+//             .utc(utcEndTime)
+//             .tz(timezone)
+//             .format("h:mm A")} on ${moment
+//             .utc(utcStartTime)
+//             .tz(timezone)
+//             .format("dddd, MMMM Do YYYY")}`;
+
+//     const hostEmail = hostBookingTemplate(
+//       host.first_name,
+//       vendor.company_name,
+//       formattedTime
+//     );
+//     const vendorEmail = vendorBookingTemplate(
+//       vendor.first_name,
+//       vendor.company_name,
+//       formattedTime,
+//       host.first_name
+//     );
+
+//     await SendEmail(res, host.email, hostEmail);
+//     await SendEmail(res, vendor.email, vendorEmail);
+//     return res.status(201).json({ message: "Venue booking created.", booking });
+//   } catch (err) {
+//     console.error("Venue Booking Error:", err);
+//     return res.status(500).json({ message: "Something went wrong." });
+//   }
+// };
+
+exports.CreateVenueBooking = async (req, res) => {
+  try {
+    const hostId = req.params.id;
+    const host = await HostModel.findById(hostId);
+    if (!host || host.role !== "host") {
+      return res.status(403).json({ message: "Only hosts can create bookings." });
+    }
+
+    const {
+      packageId,
+      vendorId,
+      event_date,
+      time_slot,
+      timezone,
+      guests,
+      services,
+    } = req.body;
+
+    if (!event_date || !timezone || !time_slot) {
+      return res.status(400).json({
+        message: "event_date, timezone, and time_slot are required for venue bookings.",
+      });
+    }
+
+    let selectedPackage = null;
+    let vendor = null;
+
+    if (packageId) {
+      selectedPackage = await PackageModel.findById(packageId);
+      if (!selectedPackage)
+        return res.status(404).json({ message: "Package not found." });
+
+      vendor = await VendorModel.findById(selectedPackage.vendor).select(
+        "category services bookings company_name email first_name timings_venue unavailable_dates"
+      );
+    } else {
+      if (!vendorId) {
+        return res.status(400).json({ message: "vendorId is required if no package is selected." });
+      }
+
+      vendor = await VendorModel.findById(vendorId).select(
+        "category services bookings company_name email first_name timings_venue unavailable_dates"
+      );
+    }
+
+    if (!vendor || vendor.category !== "venue") {
+      return res.status(400).json({ message: "Invalid or non-venue vendor." });
+    }
+
+    // Convert to UTC moment first
+    const { utcMoment, error } = getUTCFromLocal(event_date, time_slot, timezone);
+    if (error) return res.status(400).json({ message: error });
+
+    // Validate date and time slot availability
+    const localDate = moment.tz(event_date, timezone).format("YYYY-MM-DD");
+    const dayOfWeek = moment.tz(event_date, timezone).format("dddd").toLowerCase();
+
+    // 1. Check if the selected date is unavailable
+    if (vendor.unavailable_dates.includes(localDate)) {
+      return res.status(400).json({
+        message: "The venue is unavailable on the selected date.",
+      });
+    }
+
+    // 2. Check if the time slot is available for that day
+    const dayTimings = vendor.timings_venue?.get(dayOfWeek);
+
+    if (!dayTimings || !dayTimings[time_slot]) {
+      return res.status(400).json({
+        message: `The vendor does not offer bookings on ${dayOfWeek} for the ${time_slot} slot.`,
+      });
+    }
+
+    if (dayTimings[time_slot].status !== "active") {
+      return res.status(400).json({
+        message: `The selected time slot (${time_slot}) is not available on ${dayOfWeek}.`,
+      });
+    }
+
+    // Check for overlapping bookings
+    const existingBooking = await BookingModel.findOne({
+      vendor: vendor._id,
+      event_date: utcMoment,
+      time_slot,
+      status: { $ne: "rejected" },
+    });
+
+    if (existingBooking) {
+      return res.status(409).json({ message: "Venue already booked for this time slot." });
+    }
+
+    // Handle extra services
+    let selectedExtras = [];
+    if (services?.length) {
+      selectedExtras = services.map((id) => {
+        const service = vendor.services.find((s) => s._id.toString() === id);
+        if (!service) throw new Error("Invalid extra service selected");
+        return { name: service.name, price: service.price };
+      });
+    }
+
+    // Create booking
+    const booking = new BookingModel({
+      host: hostId,
+      vendor: vendor._id,
+      venue: vendor._id,
+      package: selectedPackage?._id || null,
+      event_date: utcMoment,
+      time_slot,
+      guests,
+      timezone,
+      extra_services: selectedExtras,
+    });
+
+    await booking.save();
+    vendor.bookings.push(booking._id);
+    await vendor.save();
+
+    // 📩 Format time slot with range for email
+    const slotTiming = vendor.timings_venue.get(dayOfWeek)[time_slot];
+    const slotStart = moment.tz(`${localDate} ${slotTiming.start}`, "YYYY-MM-DD HH:mm", timezone);
+    const slotEnd = moment.tz(`${localDate} ${slotTiming.end}`, "YYYY-MM-DD HH:mm", timezone);
+
+    const formattedTime = `${time_slot.charAt(0).toUpperCase() + time_slot.slice(1)} slot: ${slotStart.format("h:mm A")} to ${slotEnd.format("h:mm A")} on ${slotStart.format("dddd, MMMM Do YYYY")}`;
+
+    // ✉️ Send Emails
+    const hostEmail = hostBookingTemplate(
+      host.first_name,
+      vendor.company_name,
+      formattedTime
+    );
+    const vendorEmail = vendorBookingTemplate(
+      vendor.first_name,
+      vendor.company_name,
+      formattedTime,
+      host.first_name
+    );
+
+    await SendEmail(res, host.email, hostEmail);
+    await SendEmail(res, vendor.email, vendorEmail);
+
+    return res.status(201).json({ message: "Venue booking created.", booking });
+  } catch (err) {
+    console.error("Venue Booking Error:", err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+//!______________________ Service Booking ________________________!
+// exports.CreateServiceBooking = async (req, res) => {
+//   try {
+//     const hostId = req.params.id;
+//     const host = await HostModel.findById(hostId);
+//     if (!host || host.role !== "host") {
+//       return res
+//         .status(403)
+//         .json({ message: "Only hosts can create bookings." });
+//     }
+
+//     const { packageId, event_date, start_time, end_time, timezone, guests } =
+//       req.body;
+
+//     if (!event_date || !timezone || !start_time || !end_time || !packageId) {
+//       return res.status(400).json({
+//         message:
+//           "event_date, timezone, start_time, end_time, and packageId are required.",
+//       });
+//     }
+
+//     const selectedPackage = await PackageModel.findById(packageId);
+//     if (!selectedPackage)
+//       return res.status(404).json({ message: "Package not found" });
+
+//     const vendor = await VendorModel.findById(selectedPackage.vendor).select(
+//       "category bookings company_name email first_name"
+//     );
+//     if (!vendor || vendor.category === "venue") {
+//       return res.status(400).json({
+//         message: "Invalid vendor selected for service booking.",
+//       });
+//     }
+
+//     const moment = require("moment-timezone");
+//     const localStart = moment.tz(
+//       `${event_date} ${start_time}`,
+//       "YYYY-MM-DD hh:mm A",
+//       timezone
+//     );
+//     const localEnd = moment.tz(
+//       `${event_date} ${end_time}`,
+//       "YYYY-MM-DD hh:mm A",
+//       timezone
+//     );
+
+//     if (
+//       !localStart.isValid() ||
+//       !localEnd.isValid() ||
+//       localEnd.isBefore(localStart)
+//     ) {
+//       return res.status(400).json({ message: "Invalid time range." });
+//     }
+
+//     const utcStart = localStart.clone().utc();
+//     const utcEnd = localEnd.clone().utc();
+
+//     const overlapping = await BookingModel.findOne({
+//       vendor: vendor._id,
+//       event_date: utcStart.clone().startOf("day"),
+//       $or: [{ start_time: { $lt: utcEnd }, end_time: { $gt: utcStart } }],
+//       status: { $ne: "rejected" },
+//     });
+
+//     if (overlapping) {
+//       return res
+//         .status(409)
+//         .json({ message: "Vendor already booked for this time range." });
+//     }
+
+//     const booking = new BookingModel({
+//       host: hostId,
+//       vendor: vendor._id,
+//       package: packageId,
+//       event_date: utcStart.clone().startOf("day"),
+//       start_time: utcStart,
+//       end_time: utcEnd,
+//       guests,
 //       timezone,
 //     });
 
@@ -571,33 +878,44 @@ exports.HostUpdateProfile = async (req, res) => {
 //     vendor.bookings.push(booking._id);
 //     await vendor.save();
 
-//     const formattedDate = utcMoment.format("dddd, MMMM Do YYYY, h:mm A");
-//     const hostEmail = hostBookingTemplates(
+//     const formattedTime = `${moment
+//       .utc(utcStart)
+//       .tz(timezone)
+//       .format("h:mm A")} to ${moment
+//       .utc(utcEnd)
+//       .tz(timezone)
+//       .format("h:mm A")} on ${moment
+//       .utc(utcStart)
+//       .tz(timezone)
+//       .format("dddd, MMMM Do YYYY")}`;
+
+//     const hostEmail = hostServicePurchaseTemplate(
 //       host.first_name,
 //       vendor.company_name,
-//       formattedDate
+//       formattedTime,
+//       selectedPackage.price
 //     );
-//     const vendorEmail = vendorBookingTemplates(
+//     const vendorEmail = vendorServiceBookingTemplate(
 //       vendor.first_name,
 //       vendor.company_name,
-//       formattedDate,
-//       host.first_name
+//       formattedTime,
+//       host.first_name,
+//       selectedPackage.price
 //     );
 
 //     await SendEmail(res, host.email, hostEmail);
 //     await SendEmail(res, vendor.email, vendorEmail);
 
-//     res.status(201).json({
-//       message: "Booking request submitted. Awaiting vendor approval.",
-//       booking,
-//     });
-//   } catch (error) {
-//     console.error("Booking error:", error);
-//     res.status(500).json({ message: "Something went wrong." });
+//     return res
+//       .status(201)
+//       .json({ message: "Service booking created with package.", booking });
+//   } catch (err) {
+//     console.error("Service Booking Error:", err);
+//     return res.status(500).json({ message: "Something went wrong." });
 //   }
 // };
 
-exports.CreateVendorBooking = async (req, res) => {
+exports.CreateServiceBooking = async (req, res) => {
   try {
     const hostId = req.params.id;
     const host = await HostModel.findById(hostId);
@@ -608,155 +926,146 @@ exports.CreateVendorBooking = async (req, res) => {
     const {
       packageId,
       event_date,
-      time_slot,         // still needed for venues
-      guests,
-      extra_services,
+      start_time,
+      end_time,
       timezone,
-      start_time,        // for non-venue vendors
-      end_time,          // for non-venue vendors
+      guests,
     } = req.body;
 
-    if (!event_date || !timezone || !packageId) {
-      return res.status(400).json({ message: "packageId, event_date, and timezone are required." });
+    if (!event_date || !timezone || !start_time || !end_time || !packageId) {
+      return res.status(400).json({
+        message: "event_date, timezone, start_time, end_time, and packageId are required.",
+      });
     }
 
     const selectedPackage = await PackageModel.findById(packageId);
-    if (!selectedPackage) return res.status(404).json({ message: "Package not found" });
-
-    const vendor = await VendorModel.findById(selectedPackage.vendor).select("category extra_services bookings company_name email first_name");
-
-    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
-
-    let utcStartTime = null;
-    let utcEndTime = null;
-    let utcMoment = null;
-
-    // Handle venue vs non-venue
-    if (vendor.category === "venue") {
-      if (!time_slot) {
-        return res.status(400).json({ message: "time_slot is required for venue bookings." });
-      }
-
-      const { utcMoment: venueUtcMoment, error } = getUTCFromLocal(event_date, time_slot, timezone);
-      if (error) return res.status(400).json({ message: error });
-      utcMoment = venueUtcMoment;
-
-      // Check venue availability
-      const existingBooking = await BookingModel.findOne({
-        vendor: vendor._id,
-        event_date: utcMoment,
-        time_slot,
-        status: { $ne: "rejected" },
-      });
-
-      if (existingBooking) {
-        return res.status(409).json({ message: "This venue is already booked for the selected date and time." });
-      }
-    } else {
-      // Non-venue service: convert start and end time
-      if (!start_time || !end_time) {
-        return res.status(400).json({ message: "start_time and end_time are required for non-venue bookings." });
-      }
-
-      const moment = require("moment-timezone");
-      const localStart = moment.tz(`${event_date} ${start_time}`, "YYYY-MM-DD hh:mm A", timezone);
-      const localEnd = moment.tz(`${event_date} ${end_time}`, "YYYY-MM-DD hh:mm A", timezone);
-
-      if (!localStart.isValid() || !localEnd.isValid() || localEnd.isBefore(localStart)) {
-        return res.status(400).json({ message: "Invalid start or end time." });
-      }
-
-      utcStartTime = localStart.clone().utc();
-      utcEndTime = localEnd.clone().utc();
-
-      // Optional: Check for overlapping bookings
-      const overlapping = await BookingModel.findOne({
-        vendor: vendor._id,
-        event_date: { $eq: utcStartTime.clone().startOf("day") },
-        $or: [
-          {
-            start_time: { $lt: utcEndTime },
-            end_time: { $gt: utcStartTime },
-          }
-        ],
-        status: { $ne: "rejected" },
-      });
-
-      if (overlapping) {
-        return res.status(409).json({ message: "This vendor is already booked for the selected time range." });
-      }
+    if (!selectedPackage) {
+      return res.status(404).json({ message: "Package not found" });
     }
 
-    // Validate extra services
-    let SelectedExtra = [];
-    if (extra_services?.length) {
-      SelectedExtra = extra_services.map((id) => {
-        const service = vendor.extra_services.find((s) => s._id.toString() === id);
-        if (!service) throw new Error("Invalid extra service selected");
-        return { name: service.name, price: service.price };
+    const vendor = await VendorModel.findById(selectedPackage.vendor).select(
+      "category bookings company_name email first_name unavailable_dates slot_duration timings_service_weekly"
+    );
+
+    if (!vendor || vendor.category === "venue") {
+      return res.status(400).json({
+        message: "Invalid vendor selected for service booking.",
       });
     }
 
-    // Create booking
+    const moment = require("moment-timezone");
+    const localStart = moment.tz(`${event_date} ${start_time}`, "YYYY-MM-DD hh:mm A", timezone);
+    const localEnd = moment.tz(`${event_date} ${end_time}`, "YYYY-MM-DD hh:mm A", timezone);
+
+    if (!localStart.isValid() || !localEnd.isValid() || localEnd.isBefore(localStart)) {
+      return res.status(400).json({ message: "Invalid time range." });
+    }
+
+    const utcStart = localStart.clone().utc();
+    const utcEnd = localEnd.clone().utc();
+    const localDateOnly = localStart.format("YYYY-MM-DD");
+
+    // ❌ Vendor is unavailable that day
+    if (vendor.unavailable_dates.includes(localDateOnly)) {
+      return res.status(400).json({ message: "The vendor is unavailable on the selected date." });
+    }
+
+    // ✅ Check if requested time matches one of the vendor's active slots
+    const weekday = localStart.format("dddd").toLowerCase(); // e.g. "monday"
+    const slotsForDay = vendor.timings_service_weekly?.get(weekday);
+
+    if (!slotsForDay || !Array.isArray(slotsForDay)) {
+      return res.status(400).json({ message: `Vendor has no availability on ${weekday}` });
+    }
+
+    const requestedSlot = {
+      start: localStart.format("HH:mm"),
+      end: localEnd.format("HH:mm"),
+    };
+
+    const slotExists = slotsForDay.some(
+      slot => slot.status === "active" &&
+              slot.start === requestedSlot.start &&
+              slot.end === requestedSlot.end
+    );
+
+    if (!slotExists) {
+      return res.status(400).json({
+        message: `Selected slot ${requestedSlot.start}–${requestedSlot.end} is not available on ${weekday}`,
+      });
+    }
+
+    // 🔁 Check for overlapping bookings
+    const overlapping = await BookingModel.findOne({
+      vendor: vendor._id,
+      event_date: utcStart.clone().startOf("day"),
+      $or: [{ start_time: { $lt: utcEnd }, end_time: { $gt: utcStart } }],
+      status: { $ne: "rejected" },
+    });
+
+    if (overlapping) {
+      return res.status(409).json({
+        message: "Vendor already booked for this time range.",
+      });
+    }
+
     const booking = new BookingModel({
       host: hostId,
       vendor: vendor._id,
-      venue: vendor.category === "venue" ? vendor._id : null,
       package: packageId,
-      event_date: vendor.category === "venue" ? utcMoment : utcStartTime.clone().startOf("day"),
-      time_slot: vendor.category === "venue" ? time_slot : null,
-      start_time: vendor.category !== "venue" ? utcStartTime : null,
-      end_time: vendor.category !== "venue" ? utcEndTime : null,
+      event_date: utcStart.clone().startOf("day"),
+      start_time: utcStart,
+      end_time: utcEnd,
       guests,
-      extra_services: SelectedExtra,
       timezone,
-      duration: selectedPackage.duration,
     });
 
     await booking.save();
-
     vendor.bookings.push(booking._id);
     await vendor.save();
 
-    // const formattedTime = vendor.category === "venue"
-    //   ? utcMoment.format("dddd, MMMM Do YYYY, h:mm A")
-    //   : `${utcStartTime.format("h:mm A")} to ${utcEndTime.format("h:mm A")} on ${utcStartTime.format("dddd, MMMM Do YYYY")}`;
+    const formattedTime = `${moment.utc(utcStart).tz(timezone).format("h:mm A")} to ${moment
+      .utc(utcEnd)
+      .tz(timezone)
+      .format("h:mm A")} on ${moment.utc(utcStart).tz(timezone).format("dddd, MMMM Do YYYY")}`;
 
-    
-
-const formattedTime = vendor.category === "venue"
-  ? moment.utc(utcMoment).tz(timezone).format("dddd, MMMM Do YYYY, h:mm A")
-  : `${moment.utc(utcStartTime).tz(timezone).format("h:mm A")} to ${moment.utc(utcEndTime).tz(timezone).format("h:mm A")} on ${moment.utc(utcStartTime).tz(timezone).format("dddd, MMMM Do YYYY")}`;
-
-    const hostEmail = hostBookingTemplates(host.first_name, vendor.company_name, formattedTime);
-    const vendorEmail = vendorBookingTemplates(vendor.first_name, vendor.company_name, formattedTime, host.first_name);
+    const hostEmail = hostServicePurchaseTemplate(
+      host.first_name,
+      vendor.company_name,
+      formattedTime,
+      selectedPackage.price
+    );
+    const vendorEmail = vendorServiceBookingTemplate(
+      vendor.first_name,
+      vendor.company_name,
+      formattedTime,
+      host.first_name,
+      selectedPackage.price
+    );
 
     await SendEmail(res, host.email, hostEmail);
     await SendEmail(res, vendor.email, vendorEmail);
 
     return res.status(201).json({
-      message: "Booking request submitted. Awaiting vendor approval.",
+      message: "Service booking created with package.",
       booking,
     });
-
-  } catch (error) {
-    console.error("Booking error:", error);
+  } catch (err) {
+    console.error("Service Booking Error:", err);
     return res.status(500).json({ message: "Something went wrong." });
   }
 };
-
-
 
 //!______________________ Get Single Venue Detail ___________________________1
 exports.SingleVendor = async (req, res) => {
   try {
     const vendorId = req.params.id;
     const venue = await VendorModel.findById(vendorId).populate({
-      path:"reviews",
-      populate:{
-        path:'host',
-        select:"first_name last_name"
-      }
+      path: "reviews",
+      populate: {
+        path: "host",
+        select: "first_name last_name",
+      },
     });
     if (!venue) {
       return res.status(404).json({ message: "venue not found" });
@@ -1021,18 +1330,16 @@ exports.HostBookingDetail = async (req, res) => {
   }
 };
 
-
-
 //!________________ All Vendors on the category base ________________________!
 exports.GetAllVendors = async (req, res) => {
   try {
     const { category } = req.query;
-    console.log("category",category);
+    console.log("category", category);
     let vendors;
     if (category) {
-      vendors = await VendorModel.find({ category }).select('-password');
+      vendors = await VendorModel.find({ category }).select("-password");
     } else {
-      vendors = await VendorModel.find().select('-password');
+      vendors = await VendorModel.find().select("-password");
     }
     return res.status(200).json({ vendors });
   } catch (error) {
@@ -1041,12 +1348,10 @@ exports.GetAllVendors = async (req, res) => {
   }
 };
 
-
-
 //!___________________________ Review a Vendor _____________________!
 exports.GiveReview = async (req, res) => {
   try {
-    const hostId = req.params.id; 
+    const hostId = req.params.id;
     const { vendorId, reviewText, rating } = req.body;
 
     // Validate host
@@ -1069,7 +1374,9 @@ exports.GiveReview = async (req, res) => {
     });
 
     if (!hasBooking) {
-      return res.status(403).json({ message: "You cannot review this vendor without a confirmed booking." });
+      return res.status(403).json({
+        message: "You cannot review this vendor without a confirmed booking.",
+      });
     }
 
     // Prevent duplicate reviews from same host for same vendor
@@ -1079,7 +1386,9 @@ exports.GiveReview = async (req, res) => {
     });
 
     if (alreadyReviewed) {
-      return res.status(400).json({ message: "You have already reviewed this vendor." });
+      return res
+        .status(400)
+        .json({ message: "You have already reviewed this vendor." });
     }
 
     // Save review
@@ -1096,11 +1405,51 @@ exports.GiveReview = async (req, res) => {
     vendor.reviews.push(newReview._id);
     await vendor.save();
 
-    return res.status(201).json({ message: "Review submitted successfully", review: newReview });
-
+    return res
+      .status(201)
+      .json({ message: "Review submitted successfully", review: newReview });
   } catch (error) {
     console.error("Review error:", error);
     return res.status(500).json({ message: "Please try again later." });
   }
 };
 
+
+//!_________________________ Cancel Booking _____________________________!
+exports.CancelBooking=async(req,res)=>{
+  try {
+         const hostId=req.params.id;
+         const {bookingId}=req.body;
+         const host=await HostModel.findById(hostId);
+        if(!host){
+          return res.status(404).json({message:"host not found"})
+        }
+         const booking=await BookingModel.findById(bookingId).populate([
+          {
+            path: 'package',
+            populate: { path: 'vendor' },
+          },
+         ]);
+         if(!booking){
+          return res.status(404).json({message:"booking not found"});
+         }
+         booking.status="cancelled";
+         await booking.save();
+         const hostBookingTemp=hostBookingTemplate(
+          host.first_name,
+          vendor.company_name,
+         );
+         const vendorBookingTemp=vendorBookingTemplate(
+          booking.vendor.first_name,
+          booking.vendor.company_name,
+          formattedTime,
+          host.first_name
+         )
+         await SendEmail(res, host.email, hostBookingTemp);
+         await SendEmail(res, booking.vendor.email, );
+         return res.status(200).json({message:"booking cancelled"})
+  } catch (error) {
+    console.log("error",error);
+    return res.status(500).josn({message:"please try again.Later"})
+  }
+}

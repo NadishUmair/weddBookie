@@ -1,6 +1,6 @@
 const express=require("express");
 const { hostAuthentication, CheckHostForgetToken } = require("../middleware/hostAuth");
-const { HostProfile, SingleVenue,BuyService, HostCreateProfile, HostUpdateProfile, GetAllMyBookings, HostBookingDetail, HostSignup, HostLogin, HostForgetPassword, HostVerifyOtp, HostResetPassword, CreateVendorBooking, GetAllVendors, HostUpdatePassword, GiveReview, SingleVendor } = require("../controllers/hostController");
+const { HostProfile, SingleVenue,BuyService, HostCreateProfile, HostUpdateProfile, GetAllMyBookings, HostBookingDetail, HostSignup, HostLogin, HostForgetPassword, HostVerifyOtp, HostResetPassword, CreateVendorBooking, GetAllVendors, HostUpdatePassword, GiveReview, SingleVendor, CreateVenueBooking, CreateServiceBooking, CancelBooking } = require("../controllers/hostController");
 
 const router=express.Router();
 
@@ -14,7 +14,9 @@ router.route("/host-update-password/:id").post(hostAuthentication,HostUpdatePass
 router.route("/create-profile/:id").post(hostAuthentication,HostCreateProfile);
 router.route("/update-profile/:id").put(hostAuthentication,HostUpdateProfile);
 router.route("/profile/:id").get(hostAuthentication,HostProfile);
-router.route("/book-package/:id").post(hostAuthentication,CreateVendorBooking);
+router.route("/venue-booking/:id").post(hostAuthentication,CreateVenueBooking);
+router.route("/service-booking/:id").post(hostAuthentication,CreateServiceBooking);
+router.route("/cancel-booking/:id").put(hostAuthentication,CancelBooking);
 router.route("/book-service/:id").post(hostAuthentication,BuyService);
 router.route("/single-vendor/:id").get(hostAuthentication,SingleVendor);
 router.route("/my-bookings/:id").get(hostAuthentication,GetAllMyBookings);
